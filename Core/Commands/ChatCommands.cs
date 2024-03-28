@@ -53,7 +53,7 @@ namespace VPlus.Core.Commands
             }
         }
 
-        [Command(name: "resetVision", shortHand: "vision", adminOnly: false, usage: ".vision", description: "Removes farsight.")]
+        [Command(name: "toggleVision", shortHand: "vision", adminOnly: false, usage: ".vision", description: "Adds/removes farsight.")]
         public static void ResetVision(ChatCommandContext ctx)
         {
             Entity character = ctx.Event.SenderCharacterEntity;

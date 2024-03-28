@@ -644,7 +644,7 @@ namespace VPlus.Augments.Rank
             }
         }
 
-        [Command(name: "chooseClass", shortHand: "cc", adminOnly: true, usage: ".cc [class]", description: "Sets class to use spells from.")]
+        [Command(name: "chooseClass", shortHand: "cc", adminOnly: false, usage: ".cc [class]", description: "Sets class to use spells from.")]
         public static void ChooseClass(ChatCommandContext ctx, string className)
         {
             string nameClass = className.ToLower();

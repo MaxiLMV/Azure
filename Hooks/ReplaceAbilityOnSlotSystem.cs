@@ -177,7 +177,7 @@ namespace VPlus.Hooks
                 else
                 {
                     // Adjust abilities based on the player's spell choices
-                    if (rankData.RankSpell != 0)
+                    if (rankData.Spells.Count != 0)
                     {
                         ReplaceAbilityOnSlotBuff item = buffer[0];
                         ReplaceAbilityOnSlotBuff newItem = item;
