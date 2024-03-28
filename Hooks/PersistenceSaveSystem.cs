@@ -141,8 +141,8 @@ namespace VPlus.Hooks
                         string message1 = $"The {greencursed} Node at the Transcendum Mine is now active. The Doctor sends his regards...";
                         Entity domina = VWorld.Server.GetExistingSystem<PrefabCollectionSystem>()._PrefabGuidToEntityMap[VCreate.Data.Prefabs.CHAR_Gloomrot_Voltage_VBlood];
                         Entity purifier = VWorld.Server.GetExistingSystem<PrefabCollectionSystem>()._PrefabGuidToEntityMap[VCreate.Data.Prefabs.CHAR_Gloomrot_Purifier_VBlood];
-                        entityManager.Instantiate(domina);
-                        entityManager.Instantiate(purifier);
+                        domina = entityManager.Instantiate(domina);
+                        purifier = entityManager.Instantiate(purifier);
 
                         Entity zone = VWorld.Server.GetExistingSystem<PrefabCollectionSystem>()._PrefabGuidToEntityMap[VCreate.Data.Prefabs.TM_Cursed_Zone_Area01];
                         Entity cursedZone = VWorld.Server.EntityManager.Instantiate(zone);
