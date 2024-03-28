@@ -17,6 +17,7 @@ using ProjectM.Scripting;
 using static VCreate.Hooks.PetSystem.UnitTokenSystem;
 using Unity.Transforms;
 using Unity.Collections;
+using static VCreate.Core.Toolbox.FontColors;
 
 namespace VCreate.Core.Commands
 {
@@ -359,6 +360,35 @@ namespace VCreate.Core.Commands
                 else
                 {
                     ctx.Reply("You don't have an active familiar.");
+                }
+            }
+        }
+
+        [Command(name: "listStats", shortHand: "liststats", adminOnly: false, usage: ".liststats", description: "Lists stats of active familiar.")]
+
+        public static void ListFamStats(ChatCommandContext ctx)
+        {
+            ulong platformId = ctx.User.PlatformId;
+            if (DataStructures.PlayerPetsMap.TryGetValue(platformId, out Dictionary<string, PetExperienceProfile> data))
+            {
+                var keys = data.Keys;
+                foreach (var key in keys)
+                {
+                    if (data.TryGetValue(key, out PetExperienceProfile profile) && profile.Active)
+                    {
+                        var stats = profile.Stats;
+                        string maxhealth = White(stats[0].ToString());
+                        string attackspeed = White(stats[1].ToString());
+                        string primaryattackspeed = White(stats[2].ToString());
+                        string physicalpower = White(stats[3].ToString());
+                        string spellpower = White(stats[4].ToString());
+                        string physcritchance = White(stats[5].ToString());
+                        
+                        string spellcritchance = White(stats[6].ToString());
+                        string physcritdamage = White(stats[7].ToString());
+                        string spellcritdamage = White(stats[8].ToString());
+                        ctx.Reply($"Max Health: {maxhealth}, Attack Speed: {attackspeed}, Primary Attack Speed: {primaryattackspeed}, Physical Power: {physicalpower}, Spell Power: {spellpower}, Physical Crit Chance: {physcritchance}, Physical Crit Damage: {physcritdamage}, Spell Crit Chance: {spellcritchance}, Spell Crit Damage: {spellcritdamage}");
+                    }
                 }
             }
         }
