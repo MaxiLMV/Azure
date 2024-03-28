@@ -135,8 +135,8 @@ namespace VPlus.Hooks
                     void HandleCase1()
                     {
                         float3 center = new(-1549, -5, -56);
-                        float3 posdom = new(-1549, -5, -51);
-                        float3 pospur = new(-1554, -5, -51);
+                        float3 posdom = new(-1544, -5, -51);
+                        float3 pospur = new(-1544, -5, -56);
                         string greencursed = VPlus.Core.Toolbox.FontColors.Green("Cursed");
                         string message1 = $"The {greencursed} Node at the Transcendum Mine is now active. The Doctor sends his regards...";
                         Entity domina = VWorld.Server.GetExistingSystem<PrefabCollectionSystem>()._PrefabGuidToEntityMap[VCreate.Data.Prefabs.CHAR_Gloomrot_Voltage_VBlood];
