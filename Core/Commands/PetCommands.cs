@@ -387,10 +387,13 @@ namespace VCreate.Core.Commands
                         string spellcritchance = White(stats[6].ToString());
                         string physcritdamage = White(stats[7].ToString());
                         string spellcritdamage = White(stats[8].ToString());
-                        ctx.Reply($"Max Health: {maxhealth}, Attack Speed: {attackspeed}, Primary Attack Speed: {primaryattackspeed}, Physical Power: {physicalpower}, Spell Power: {spellpower}, Physical Crit Chance: {physcritchance}, Physical Crit Damage: {physcritdamage}, Spell Crit Chance: {spellcritchance}, Spell Crit Damage: {spellcritdamage}");
+                        ctx.Reply($"Max Health: {maxhealth}, Cast Speed: {attackspeed}, Primary Attack Speed: {primaryattackspeed}, Physical Power: {physicalpower}, Spell Power: {spellpower}, Physical Crit Chance: {physcritchance}, Physical Crit Damage: {physcritdamage}, Spell Crit Chance: {spellcritchance}, Spell Crit Damage: {spellcritdamage}");
+                        return;
                     }
                 }
+                ctx.Reply("You don't have an active familiar.");
             }
+            
         }
 
         [Command(name: "combatModeToggle", shortHand: "combat", adminOnly: false, usage: ".combat", description: "Toggles combat mode for familiar.")]
