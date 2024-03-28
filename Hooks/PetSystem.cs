@@ -90,7 +90,7 @@ namespace VCreate.Hooks
 
                         profile.CurrentExperience += (int)baseExp;
 
-                        double toNext = 1.25 * Math.Pow(profile.Level, 3);
+                        double toNext = 1.25 * Math.Pow(profile.Level, 2);
 
                         if (profile.CurrentExperience >= toNext && profile.Level < 80)
                         {
@@ -147,7 +147,7 @@ namespace VCreate.Hooks
                     // fix stat permanencesa
                     profile.CurrentExperience += (int)baseExp;
 
-                    double toNext = 1.25 * Math.Pow(profile.Level, 3);
+                    double toNext = 1.25 * Math.Pow(profile.Level, 2);
 
                     if (profile.CurrentExperience >= toNext && profile.Level < 80)
                     {
