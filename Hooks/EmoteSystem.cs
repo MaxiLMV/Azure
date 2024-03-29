@@ -187,13 +187,32 @@ internal class EmoteSystemPatch
                 BufferFromEntity<BuffBuffer> bufferFromEntity = VWorld.Server.EntityManager.GetBufferFromEntity<BuffBuffer>();
                 if (profile.Combat)
                 {
-                    BuffUtility.TryRemoveBuff(ref buffSpawner, entityCommandBuffer, VCreate.Data.Prefabs.AB_Charm_Active_Human_Buff, familiar);
+                    //BuffUtility.TryRemoveBuff(ref buffSpawner, entityCommandBuffer, VCreate.Data.Prefabs.AB_Charm_Active_Human_Buff, familiar);
+                    AggroConsumer aggroConsumer = familiar.Read<AggroConsumer>();
+                    aggroConsumer.Active = ModifiableBool.CreateFixed(true);
+                    familiar.Write(aggroConsumer);
+
+                    Aggroable aggroable = familiar.Read<Aggroable>();
+                    aggroable.Value = ModifiableBool.CreateFixed(true);
+                    aggroable.AggroFactor._Value = 1f;
+                    aggroable.DistanceFactor._Value = 1f;
+                    familiar.Write(aggroable);
                     BuffUtility.TryRemoveBuff(ref buffSpawner, entityCommandBuffer, VCreate.Data.Prefabs.Admin_Invulnerable_Buff, familiar);
+                    BuffUtility.TryRemoveBuff(ref buffSpawner, entityCommandBuffer, VCreate.Data.Prefabs.AB_Militia_HoundMaster_QuickShot_Buff, familiar);
                 }
                 else
                 {
+                    AggroConsumer aggroConsumer = familiar.Read<AggroConsumer>();
+                    aggroConsumer.Active = ModifiableBool.CreateFixed(false);
+                    familiar.Write(aggroConsumer);
+
+                    Aggroable aggroable = familiar.Read<Aggroable>();
+                    aggroable.Value = ModifiableBool.CreateFixed(false);
+                    aggroable.AggroFactor._Value = 0f;
+                    aggroable.DistanceFactor._Value = 0f;
+                    familiar.Write(aggroable);
                     OnHover.BuffNonPlayer(familiar, VCreate.Data.Prefabs.Admin_Invulnerable_Buff);
-                    OnHover.BuffNonPlayer(familiar, VCreate.Data.Prefabs.AB_Charm_Active_Human_Buff);
+                    OnHover.BuffNonPlayer(familiar, VCreate.Data.Prefabs.AB_Militia_HoundMaster_QuickShot_Buff);
                 }
 
                 data[familiar.Read<PrefabGUID>().LookupName().ToString()] = profile;

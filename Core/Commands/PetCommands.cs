@@ -133,13 +133,8 @@ namespace VCreate.Core.Commands
             // verify states before proceeding, make sure no active profiles and no familiars in stasis
             if (DataStructures.PlayerPetsMap.TryGetValue(platformId, out var data))
             {
-                int limit = 9;
                 var profiles = data.Values;
-                if (profiles.Count > limit)
-                {
-                    ctx.Reply("You have too many familiar profiles to bind to another, you'll have to remove one first.");
-                    return;
-                }
+                
                 foreach (var profile in profiles)
                 {
                     if (profile.Active)
@@ -215,7 +210,7 @@ namespace VCreate.Core.Commands
             {
                 if (PlayerFamiliarStasisMap.TryGetValue(platformId, out FamiliarStasisState familiarStasisState) && familiarStasisState.IsInStasis)
                 {
-                    ctx.Reply("You have a familiar in stasis. Summon it before unbinding.");
+                    ctx.Reply("You have a familiar in stasis. Call it before unbinding.");
                     return;
                 }
 
@@ -250,7 +245,7 @@ namespace VCreate.Core.Commands
                     {
                         if (data[key].Active)
                         {
-                            // remember if code gets here it means familiar also not in stasis so probably has been lost, unbind it
+                            // remember if code gets here it means familiar also not in stasis so probably has been killed, unbind it
                             data.TryGetValue(key, out PetExperienceProfile dataprofile);
                             dataprofile.Active = false;
                             data[key] = dataprofile;
@@ -395,7 +390,7 @@ namespace VCreate.Core.Commands
             }
             
         }
-
+        /*
         [Command(name: "combatModeToggle", shortHand: "combat", adminOnly: false, usage: ".combat", description: "Toggles combat mode for familiar.")]
         public static void MethodFive(ChatCommandContext ctx)
         {
@@ -472,7 +467,103 @@ namespace VCreate.Core.Commands
                 return;
             }
         }
+        */
 
+        [Command(name: "combatModeToggleTest", shortHand: "combat", adminOnly: false, usage: ".combat", description: "Toggles combat mode for familiar.")]
+        public static void MethodFive(ChatCommandContext ctx)
+        {
+            ulong platformId = ctx.User.PlatformId;
+            var buffs = ctx.Event.SenderCharacterEntity.ReadBuffer<BuffBuffer>();
+            foreach (var buff in buffs)
+            {
+                if (buff.PrefabGuid.GuidHash == VCreate.Data.Prefabs.Buff_InCombat.GuidHash)
+                {
+                    ctx.Reply("You cannot toggle combat mode during combat.");
+                    return;
+                }
+            }
+            if (DataStructures.PlayerPetsMap.TryGetValue(platformId, out Dictionary<string, PetExperienceProfile> data))
+            {
+                ServerGameManager serverGameManager = VWorld.Server.GetExistingSystem<ServerScriptMapper>()._ServerGameManager;
+                BuffUtility.BuffSpawner buffSpawner = BuffUtility.BuffSpawner.Create(serverGameManager);
+                EntityCommandBufferSystem entityCommandBufferSystem = VWorld.Server.GetExistingSystem<EntityCommandBufferSystem>();
+                EntityCommandBuffer entityCommandBuffer = entityCommandBufferSystem.CreateCommandBuffer();
+                Entity familiar = FindPlayerFamiliar(ctx.Event.SenderCharacterEntity);
+                if (familiar.Equals(Entity.Null))
+                {
+                    ctx.Reply("Summon your familiar before toggling this.");
+                    return;
+                }
+                if (data.TryGetValue(familiar.Read<PrefabGUID>().LookupName().ToString(), out PetExperienceProfile profile) && profile.Active)
+                {
+                    profile.Combat = !profile.Combat; // this will be false when first triggered
+                    FactionReference factionReference = familiar.Read<FactionReference>();
+                    PrefabGUID ignored = new(-1430861195);
+                    PrefabGUID player = new(1106458752);
+                    if (!profile.Combat)
+                    {
+                        factionReference.FactionGuid._Value = ignored;
+                    }
+                    else
+                    {
+                        factionReference.FactionGuid._Value = player;
+                    }
+
+                    //familiar.Write(new Immortal { IsImmortal = !profile.Combat });
+
+                    familiar.Write(factionReference);
+                    BufferFromEntity<BuffBuffer> bufferFromEntity = VWorld.Server.EntityManager.GetBufferFromEntity<BuffBuffer>();
+                    if (profile.Combat)
+                    {
+                        //BuffUtility.TryRemoveBuff(ref buffSpawner, entityCommandBuffer, VCreate.Data.Prefabs.AB_Charm_Active_Human_Buff, familiar);
+                        AggroConsumer aggroConsumer = familiar.Read<AggroConsumer>();
+                        aggroConsumer.Active = ModifiableBool.CreateFixed(true);
+                        familiar.Write(aggroConsumer);
+
+                        Aggroable aggroable = familiar.Read<Aggroable>();
+                        aggroable.Value = ModifiableBool.CreateFixed(true);
+                        aggroable.AggroFactor._Value = 1f;
+                        aggroable.DistanceFactor._Value = 1f;
+                        familiar.Write(aggroable);
+                        BuffUtility.TryRemoveBuff(ref buffSpawner, entityCommandBuffer, VCreate.Data.Prefabs.Admin_Invulnerable_Buff, familiar);
+                        BuffUtility.TryRemoveBuff(ref buffSpawner, entityCommandBuffer, VCreate.Data.Prefabs.AB_Militia_HoundMaster_QuickShot_Buff, familiar);
+                    }
+                    else
+                    {
+                        AggroConsumer aggroConsumer = familiar.Read<AggroConsumer>();
+                        aggroConsumer.Active = ModifiableBool.CreateFixed(false);
+                        familiar.Write(aggroConsumer);
+
+                        Aggroable aggroable = familiar.Read<Aggroable>();
+                        aggroable.Value = ModifiableBool.CreateFixed(false);
+                        aggroable.AggroFactor._Value = 0f;
+                        aggroable.DistanceFactor._Value = 0f;
+                        familiar.Write(aggroable);
+                        OnHover.BuffNonPlayer(familiar, VCreate.Data.Prefabs.Admin_Invulnerable_Buff);
+                        OnHover.BuffNonPlayer(familiar, VCreate.Data.Prefabs.AB_Militia_HoundMaster_QuickShot_Buff);
+                    }
+
+                    data[familiar.Read<PrefabGUID>().LookupName().ToString()] = profile;
+                    DataStructures.PlayerPetsMap[platformId] = data;
+                    DataStructures.SavePetExperience();
+                    if (!profile.Combat)
+                    {
+                        string disabledColor = VCreate.Core.Toolbox.FontColors.Pink("disabled");
+                        ctx.Reply($"Combat for familiar is {disabledColor}. It cannot die and won't participate, however, no experience will be gained.");
+                    }
+                    else
+                    {
+                        string enabledColor = VCreate.Core.Toolbox.FontColors.Green("enabled");
+                        ctx.Reply($"Combat for familiar is {enabledColor}. It will fight till glory or death and gain experience.");
+                    }
+                }
+            }
+            else
+            {
+                ctx.Reply("You don't have any familiars.");
+                return;
+            }
+        }
         internal struct FamiliarStasisState
         {
             public Entity FamiliarEntity;

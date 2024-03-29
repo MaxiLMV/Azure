@@ -18,7 +18,7 @@ using VRising.GameData.Models;
 public static class FollowerSystemPatchV2
 {
     private static readonly PrefabGUID charm = VCreate.Data.Prefabs.AB_Charm_Active_Human_Buff;
-    private static HashSet<Entity> hashset = new();
+    //private static HashSet<Entity> hashset = new();
 
     public static void Prefix(FollowerSystem __instance)
     {
@@ -31,11 +31,11 @@ public static class FollowerSystemPatchV2
         NativeArray<Entity> entities = __instance.__OnUpdate_LambdaJob0_entityQuery.ToEntityArray(Unity.Collections.Allocator.Temp);
         try
         {
-        outerLoop:
+        //outerLoop:
             foreach (Entity entity in entities)
             {
                 //Plugin.Log.LogInfo($"{entities.m_Length}");
-                if (hashset.Contains(entity)) continue;
+                //if (hashset.Contains(entity)) continue;
                 var buffer = entity.ReadBuffer<BuffBuffer>();
                 foreach (var buff in buffer)
                 {
@@ -44,9 +44,9 @@ public static class FollowerSystemPatchV2
                         Follower follower = entity.Read<Follower>();
                         Entity followed = follower.Followed._Value;
                         if (!followed.Has<PlayerCharacter>()) continue;
-                        if (DataStructures.PlayerSettings.TryGetValue(followed.Read<PlayerCharacter>().UserEntity.Read<User>().PlatformId, out var data) && !data.Binding) return;
+                        //if (DataStructures.PlayerSettings.TryGetValue(followed.Read<PlayerCharacter>().UserEntity.Read<User>().PlatformId, out var data) && !data.Binding) return;
                         
-                        Plugin.Log.LogInfo("Charmed entity following player with binding flag detected in SpawnReactSystem, checking for valid familiar to bind...");
+                        Plugin.Log.LogInfo("Charmed entity following player detected in SpawnReactSystem, checking for valid familiar to bind...");
                         
                         Entity userEntity = followed.Read<PlayerCharacter>().UserEntity;
 
@@ -54,23 +54,25 @@ public static class FollowerSystemPatchV2
                         if (DataStructures.PlayerSettings.TryGetValue(userEntity.Read<User>().PlatformId, out var dataset))
                         {
                             
-                            Plugin.Log.LogInfo($"entityFromQuery: {check}, setFamiliar: {data.Familiar} ");
+                            Plugin.Log.LogInfo($"entityFromQuery: {check}, setFamiliar: {dataset.Familiar} ");
 
-                            if (!data.Familiar.Equals(check))
+                            if (!dataset.Familiar.Equals(check) || !dataset.Binding)
                             {
-                                Plugin.Log.LogInfo("Failed set familiar check, not the set player familiar.");
+                                Plugin.Log.LogInfo("Failed set familiar check or no binding flag, returning.");
                                 dataset.Binding = false;
-                                hashset.Add(entity);
-                                goto outerLoop;
+                                //hashset.Add(entity);
+                                //goto outerLoop;
+                                continue;
                             }
                             else
                             {
-                                Plugin.Log.LogInfo("Found unbound, inactive set familiar, removing charm and binding...");
+                                Plugin.Log.LogInfo("Found unbound/inactive, set familiar, removing charm and binding...");
                                 BuffUtility.TryRemoveBuff(ref buffSpawner, entityCommandBuffer, charm, entity);
                                 
                                 OnHover.ConvertCharacter(userEntity, entity);
-                                hashset.Add(entity);
-                                goto outerLoop;
+                                //hashset.Add(entity);
+                                //goto outerLoop;
+                                continue;
                             }
                             
                         }
@@ -87,7 +89,6 @@ public static class FollowerSystemPatchV2
         {
             // Ensure entities are disposed of even if an exception occurs
             entities.Dispose();
-            hashset.Clear();
         }
     }
 }

@@ -78,15 +78,16 @@ namespace VCreate.Hooks
                     {
                         if (value.Active)
                         {
-                            
+
                             // put in stasis
-                            PetCommands.PlayerFamiliarStasisMap.TryGetValue(steamId, out var stasis);
+                            if (PetCommands.PlayerFamiliarStasisMap.TryGetValue(steamId, out var stasis) && stasis.IsInStasis) break;
                             Entity pet = PetCommands.FindPlayerFamiliar(user.LocalCharacter._Entity);
                             if (pet != Entity.Null)
                             {
                                 SystemPatchUtil.Disable(pet);
                                 PlayerFamiliarStasisMap[steamId] = new FamiliarStasisState(pet, true);
                                 Plugin.Log.LogInfo("Player familiar has been put in stasis on disconnecting.");
+                                break;
                             }
                         }
                     }

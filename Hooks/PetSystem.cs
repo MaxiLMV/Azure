@@ -154,7 +154,7 @@ namespace VCreate.Hooks
                         profile.CurrentExperience = 0;
                         profile.Level++;
 
-                        Plugin.Log.LogInfo("Pet level up! Setting level and saving stats...");
+                        Plugin.Log.LogInfo("Pet level up! Setting level and saving stats.");
                         pet.Write<UnitLevel>(new UnitLevel { Level = profile.Level });
 
                         //UnitStats unitStats = pet.Read<UnitStats>();
@@ -179,7 +179,7 @@ namespace VCreate.Hooks
                     }
                     else
                     {
-                        Plugin.Log.LogInfo("Giving pet experience...");
+                        //Plugin.Log.LogInfo("Giving pet experience...");
                         profiles[pet.Read<PrefabGUID>().LookupName().ToString()] = profile;
                         DataStructures.PlayerPetsMap[platformId] = profiles;
                         DataStructures.SavePetExperience();
@@ -213,15 +213,15 @@ namespace VCreate.Hooks
             {
                 public static readonly Dictionary<FocusToStatMap.StatType, float> Caps = new()
                 {
-                    {FocusToStatMap.StatType.MaxHealth, 2500f},
+                    {FocusToStatMap.StatType.MaxHealth, 5000f},
                     {FocusToStatMap.StatType.AttackSpeed, 2f},
                     {FocusToStatMap.StatType.PrimaryAttackSpeed, 2f},
                     {FocusToStatMap.StatType.PhysicalPower, 100f},
                     {FocusToStatMap.StatType.SpellPower, 100f},
-                    {FocusToStatMap.StatType.PhysicalCriticalStrikeChance, 0.05f * 40},
-                    {FocusToStatMap.StatType.PhysicalCriticalStrikeDamage, 1f * 40},
-                    {FocusToStatMap.StatType.SpellCriticalStrikeChance, 0.05f * 40},
-                    {FocusToStatMap.StatType.SpellCriticalStrikeDamage, 1f * 40}
+                    {FocusToStatMap.StatType.PhysicalCriticalStrikeChance, 0.75f},
+                    {FocusToStatMap.StatType.PhysicalCriticalStrikeDamage, 2.5f},
+                    {FocusToStatMap.StatType.SpellCriticalStrikeChance, 0.75f},
+                    {FocusToStatMap.StatType.SpellCriticalStrikeDamage, 2.5f}
                 };
             }
 
@@ -229,7 +229,7 @@ namespace VCreate.Hooks
             {
                 public static readonly Dictionary<FocusToStatMap.StatType, float> Increases = new()
                 {
-                    {FocusToStatMap.StatType.MaxHealth, 10f},
+                    {FocusToStatMap.StatType.MaxHealth, 20f},
                     {FocusToStatMap.StatType.AttackSpeed, 0.01f},
                     {FocusToStatMap.StatType.PrimaryAttackSpeed, 0.02f},
                     {FocusToStatMap.StatType.PhysicalPower, 1f},
@@ -399,11 +399,11 @@ namespace VCreate.Hooks
 
                 public static readonly Dictionary<UnitType, int> UnitCategoryToGemPrefab = new()
                 {
-                    { UnitType.Human, -2020212226 }, // Item_Ingredient_Gem_Sapphire_T04
-                    { UnitType.Undead, 1354115931 }, // Item_Ingredient_Gem_Emerald_T04
-                    { UnitType.Demon, 750542699 }, // Item_Ingredient_Gem_Miststone_T04
-                    { UnitType.Mechanical, -1983566585 }, // Item_Ingredient_Gem_Topaz_T04
-                    { UnitType.Beast, -106283194 }, // Item_Ingredient_Gem_Amethyst_T04
+                    { UnitType.Human, -1147920398 }, // Item_Ingredient_Gem_Sapphire_T03
+                    { UnitType.Undead, 1898237421 }, // Item_Ingredient_Gem_Emerald_T03
+                    { UnitType.Demon, -1963826510 }, // Item_Ingredient_Gem_Miststone_T03
+                    { UnitType.Mechanical, -2051574178 }, // Item_Ingredient_Gem_Topaz_T03
+                    { UnitType.Beast, -106283194 }, // Item_Ingredient_Gem_Amethyst_T03
                     { UnitType.VBlood, 188653143 } // Item_Ingredient_Gem_Ruby_T04
                 };
             }
@@ -521,12 +521,12 @@ namespace VCreate.Hooks
 
                 if (roll < chance)
                 {
-                    Plugin.Log.LogInfo($"Roll for {gem.LookupName()} from {died.Read<PrefabGUID>().LookupName()} was successful");
+                    //Plugin.Log.LogInfo($"Roll for {gem.LookupName()} from {died.Read<PrefabGUID>().LookupName()} was successful");
                     return true; // The roll is successful, within the chance
                 }
                 else
                 {
-                    Plugin.Log.LogInfo($"Roll for {gem.LookupName()} from {died.Read<PrefabGUID>().LookupName()} was unsuccessful");
+                    //Plugin.Log.LogInfo($"Roll for {gem.LookupName()} from {died.Read<PrefabGUID>().LookupName()} was unsuccessful");
                     return false; // The roll is not successful
                 }
             }

@@ -237,7 +237,14 @@ namespace VCreate.Systems
             ModifiableEntity modifiableEntity = ModifiableEntity.CreateFixed(character);
             Follower follower = familiar.Read<Follower>();
             follower.Followed = modifiableEntity;
+            if (Utilities.HasComponent<BloodConsumeSource>(familiar))
+            {
+                BloodConsumeSource bloodConsumeSource = familiar.Read<BloodConsumeSource>();
+                bloodConsumeSource.BloodQuality = 0f;
+                bloodConsumeSource.CanBeConsumed = false;
+                familiar.Write(bloodConsumeSource);
 
+            }
             Utilities.SetComponentData(familiar, follower);
             Utilities.SetComponentData(familiar, teamReference);
             ModifiablePrefabGUID modifiablePrefabGUID = ModifiablePrefabGUID.CreateFixed(VCreate.Data.Prefabs.Faction_Players);
@@ -245,7 +252,7 @@ namespace VCreate.Systems
 
             AggroConsumer aggroConsumer = familiar.Read<AggroConsumer>();
             aggroConsumer.ProximityRadius = 15f;
-            aggroConsumer.MaxDistanceFromPreCombatPosition = 20f;
+            aggroConsumer.MaxDistanceFromPreCombatPosition = 30f;
             aggroConsumer.RemoveDelay = 6f;
             familiar.Write(aggroConsumer);
 
@@ -254,9 +261,8 @@ namespace VCreate.Systems
             dynamicCollision.AgainstUnits.RadiusOverride = 0.4f;
             familiar.Write(dynamicCollision);
 
-            //GenericCombatMovementData genericCombatMovementData = familiar.Read<GenericCombatMovementData>();
-
-            //familiar.Write(genericCombatMovementData);
+            
+            
         }
 
         public static ModifiableFloat CreateModifiableFloat(Entity entity, EntityManager entityManager, float value)
@@ -267,97 +273,111 @@ namespace VCreate.Systems
 
         public static void SecondPhase(Entity userEntity, Entity familiar)
         {
-            EntityManager entityManager = VWorld.Server.EntityManager;
+            //EntityManager entityManager = VWorld.Server.EntityManager;
 
-            familiar.Write(new UnitLevel { Level = 0 });
-
-            Health healthUnit = familiar.Read<Health>();
-            //healthUnit.MaxHealth = CreateModifiableFloat(familiar, entityManager, 250f);
-            healthUnit.MaxHealth = ModifiableFloat.CreateFixed(250f);
-            healthUnit.Value = 250f;
-            familiar.Write(healthUnit);
-
-            UnitStats unitStats = familiar.Read<UnitStats>();
-            unitStats.PhysicalPower = ModifiableFloat.CreateFixed(10f);
-            unitStats.SpellPower = ModifiableFloat.CreateFixed(10f);
-            unitStats.PhysicalCriticalStrikeChance._Value = 0.1f;
-            unitStats.SpellCriticalStrikeChance._Value = 0.1f;
-            unitStats.PhysicalCriticalStrikeDamage._Value = 1.5f;
-            unitStats.SpellCriticalStrikeDamage._Value = 1.5f;
-            familiar.Write(unitStats);
-
-            if (familiar.Has<DamageCategoryStats>())
+            string toCheck = familiar.Read<PrefabGUID>().GuidHash.ToString();
+            string familiarFullName = familiar.Read<PrefabGUID>().LookupName();
+            if (DataStructures.PlayerPetsMap.TryGetValue(userEntity.Read<User>().PlatformId, out Dictionary<string, PetExperienceProfile> data))
             {
-                DamageCategoryStats damageCategoryStats = familiar.Read<DamageCategoryStats>();
-                damageCategoryStats.DamageVsPlayerVampires._Value = 0.1f;
-                familiar.Write(damageCategoryStats);
-            }
+                // check for profile here
+                var keys = data.Keys;
+                bool flag = false;
+                foreach (var key in keys)
+                {
+                    if (key.ToLower().Contains(toCheck))
+                    {
+                        flag = true;
+                        break;
+                    }
+                }
+                if (flag)
+                {
+                    // current pet profile
+                    data.TryGetValue(familiarFullName, out PetExperienceProfile profile);
 
-            PetExperienceProfile petExperience = new PetExperienceProfile
-            {
-                CurrentExperience = 0,
-                Level = 0,
-                Focus = 0,
-                Active = true,
-                Combat = true,
-                Stats = []
-            };
+                    profile.Active = true;
+                    UnitStats stats = familiar.Read<UnitStats>();
+                    UnitLevel level = familiar.Read<UnitLevel>();
+                    Health health = familiar.Read<Health>();
+                    health.MaxHealth = ModifiableFloat.CreateFixed(profile.Stats[0]);
+                    health.Value = profile.Stats[0];
+                    stats.AttackSpeed._Value = profile.Stats[1];
+                    stats.PrimaryAttackSpeed._Value = profile.Stats[2];
+                    stats.PhysicalPower = ModifiableFloat.CreateFixed(profile.Stats[3]);
+                    stats.SpellPower = ModifiableFloat.CreateFixed(profile.Stats[4]);
+                    stats.PhysicalCriticalStrikeChance._Value = profile.Stats[5];
+                    stats.SpellCriticalStrikeChance._Value = profile.Stats[6];
+                    stats.PhysicalCriticalStrikeDamage._Value = profile.Stats[7];
+                    stats.SpellCriticalStrikeDamage._Value = profile.Stats[8];
+                    level.Level = profile.Level;
+                    familiar.Write(stats);
+                    familiar.Write(health);
+                    familiar.Write(level);
 
-            string familiarName = familiar.Read<PrefabGUID>().LookupName().ToString();
-            if (!DataStructures.PlayerPetsMap.TryGetValue(userEntity.Read<User>().PlatformId, out Dictionary<string, PetExperienceProfile> data))
-            {
-                data = new Dictionary<string, PetExperienceProfile>();
-                DataStructures.PlayerPetsMap[userEntity.Read<User>().PlatformId] = data;
-            }
+                    data[familiarFullName] = profile;
+                    DataStructures.PlayerPetsMap[userEntity.Read<User>().PlatformId] = data;
+                    DataStructures.SavePetExperience();
+                }
+                else
+                {
+                    // new pet profile
+                    familiar.Write(new UnitLevel { Level = 0 });
 
-            if (data.ContainsKey(familiarName))
-            {
-                PetExperienceProfile profile = data[familiarName];
+                    Health healthUnit = familiar.Read<Health>();
+                    healthUnit.MaxHealth = ModifiableFloat.CreateFixed(500f);
+                    healthUnit.Value = 500f;
+                    familiar.Write(healthUnit);
 
-                profile.Active = true;
-                UnitStats stats = familiar.Read<UnitStats>();
-                UnitLevel level = familiar.Read<UnitLevel>();
-                Health health = familiar.Read<Health>();
-                health.MaxHealth = ModifiableFloat.CreateFixed(profile.Stats[0]);
-                health.Value = profile.Stats[0];
-                stats.AttackSpeed._Value = profile.Stats[1];
-                stats.PrimaryAttackSpeed._Value = profile.Stats[2];
-                stats.PhysicalPower = ModifiableFloat.CreateFixed(profile.Stats[3]);
-                stats.SpellPower = ModifiableFloat.CreateFixed(profile.Stats[4]);
-                stats.PhysicalCriticalStrikeChance._Value = profile.Stats[5];
-                stats.SpellCriticalStrikeChance._Value = profile.Stats[6];
-                stats.PhysicalCriticalStrikeDamage._Value = profile.Stats[7];
-                stats.SpellCriticalStrikeDamage._Value = profile.Stats[8];
-                level.Level = profile.Level;
-                familiar.Write(stats);
-                familiar.Write(health);
-                familiar.Write(level);
+                    UnitStats unitStats = familiar.Read<UnitStats>();
 
-                data[familiarName] = profile;
-                DataStructures.PlayerPetsMap[userEntity.Read<User>().PlatformId] = data;
-                DataStructures.SavePetExperience();
-            }
-            else
-            {
-                petExperience.Active = true;
-                UnitStats stats = familiar.Read<UnitStats>();
-                UnitLevel level = familiar.Read<UnitLevel>();
-                Health health = familiar.Read<Health>();
-                float maxHealth = health.MaxHealth._Value;
-                float attackSpeed = stats.AttackSpeed._Value;
-                float primaryAttackSpeed = stats.PrimaryAttackSpeed._Value;
-                float physicalPower = stats.PhysicalPower._Value;
-                float spellPower = stats.SpellPower._Value;
-                float physicalCrit = stats.PhysicalCriticalStrikeChance._Value;
-                float physicalCritDmg = stats.PhysicalCriticalStrikeDamage._Value;
-                float spellCrit = stats.SpellCriticalStrikeChance._Value;
-                float spellCritDmg = stats.SpellCriticalStrikeDamage._Value;
+                    unitStats.PhysicalPower = ModifiableFloat.CreateFixed(10f);
+                    unitStats.SpellPower = ModifiableFloat.CreateFixed(10f);
+                    unitStats.PhysicalCriticalStrikeChance._Value = 0.1f;
+                    unitStats.SpellCriticalStrikeChance._Value = 0.1f;
+                    unitStats.PhysicalCriticalStrikeDamage._Value = 1.5f;
+                    unitStats.SpellCriticalStrikeDamage._Value = 1.5f;
+                    unitStats.PassiveHealthRegen._Value = 0.01f;
 
-                petExperience.Stats.Clear();
-                petExperience.Stats.AddRange([maxHealth, attackSpeed, primaryAttackSpeed, physicalPower, spellPower, physicalCrit, physicalCritDmg, spellCrit, spellCritDmg]);
-                data[familiarName] = petExperience;
-                DataStructures.PlayerPetsMap[userEntity.Read<User>().PlatformId] = data;
-                DataStructures.SavePetExperience();
+
+                    familiar.Write(unitStats);
+                    
+                    if (familiar.Has<DamageCategoryStats>())
+                    {
+                        DamageCategoryStats damageCategoryStats = familiar.Read<DamageCategoryStats>();
+                        damageCategoryStats.DamageVsPlayerVampires._Value = 0.1f;
+                        familiar.Write(damageCategoryStats);
+                    }
+
+
+                    PetExperienceProfile petExperience = new PetExperienceProfile
+                    {
+                        CurrentExperience = 0,
+                        Level = 0,
+                        Focus = 0,
+                        Active = true,
+                        Combat = true,
+                        Stats = []
+                    };
+                    petExperience.Active = true;
+                    UnitStats stats1 = familiar.Read<UnitStats>();
+                    UnitLevel level1 = familiar.Read<UnitLevel>();
+                    Health health1 = familiar.Read<Health>();
+                    float maxHealth = health1.MaxHealth._Value;
+                    float attackSpeed = stats1.AttackSpeed._Value;
+                    float primaryAttackSpeed = stats1.PrimaryAttackSpeed._Value;
+                    float physicalPower = stats1.PhysicalPower._Value;
+                    float spellPower = stats1.SpellPower._Value;
+                    float physicalCrit = stats1.PhysicalCriticalStrikeChance._Value;
+                    float physicalCritDmg = stats1.PhysicalCriticalStrikeDamage._Value;
+                    float spellCrit = stats1.SpellCriticalStrikeChance._Value;
+                    float spellCritDmg = stats1.SpellCriticalStrikeDamage._Value;
+                    petExperience.Level = level1.Level;
+                    petExperience.Stats.Clear();
+                    petExperience.Stats.AddRange([maxHealth, attackSpeed, primaryAttackSpeed, physicalPower, spellPower, physicalCrit, physicalCritDmg, spellCrit, spellCritDmg]);
+                    data[familiarFullName] = petExperience;
+                    DataStructures.PlayerPetsMap[userEntity.Read<User>().PlatformId] = data;
+                    DataStructures.SavePetExperience();
+                }
             }
         }
 

@@ -82,7 +82,7 @@ public static class BehaviourTreeStateChangedEventSystemPatch
 
                 if (Utilities.HasComponent<BehaviourTreeState>(entity) && entity.Read<BehaviourTreeState>().Value == GenericEnemyState.Return)
                 {
-                    // want to somewhat reset familiar state here for any that have weird phases after some amount of time in combat
+                    // want to somewhat reset familiar state here for any that have weird phases after some amount of time in combat, clear buff buffer?
                     BehaviourTreeState behaviourTreeStateChangedEvent = entity.Read<BehaviourTreeState>();
                     behaviourTreeStateChangedEvent.Value = GenericEnemyState.Follow;
                     entity.Write(behaviourTreeStateChangedEvent);
@@ -93,7 +93,8 @@ public static class BehaviourTreeStateChangedEventSystemPatch
                     AggroConsumer aggroConsumer = entity.Read<AggroConsumer>();
                     Entity aggroTarget = aggroConsumer.AggroTarget._Entity;
                     Entity alertTarget = aggroConsumer.AlertTarget._Entity;
-                    if (aggroTarget.Has<VampireTag>() || alertTarget.Has<VampireTag>())
+                    
+                    if (aggroTarget.Has<VampireTag>())
                     {
                         var aggroBuffer = aggroTarget.ReadBuffer<BuffBuffer>();
                         foreach (var buff in aggroBuffer)
@@ -101,10 +102,15 @@ public static class BehaviourTreeStateChangedEventSystemPatch
                             if (buff.PrefabGuid.GuidHash == VCreate.Data.Prefabs.Buff_General_PvPProtected.GuidHash)
                             {
                                 BehaviourTreeState behaviourTreeStateChangedEvent = entity.Read<BehaviourTreeState>();
-                                behaviourTreeStateChangedEvent.Value = GenericEnemyState.Follow;
+                                behaviourTreeStateChangedEvent.Value = GenericEnemyState.Return;
                                 entity.Write(behaviourTreeStateChangedEvent);
+                                break;
                             }
                         }
+                        
+                    }
+                    if (alertTarget.Has<VampireTag>())
+                    {
                         var alertBuffer = alertTarget.ReadBuffer<BuffBuffer>();
                         foreach (var buff in alertBuffer)
                         {
@@ -113,21 +119,20 @@ public static class BehaviourTreeStateChangedEventSystemPatch
                                 BehaviourTreeState behaviourTreeStateChangedEvent = entity.Read<BehaviourTreeState>();
                                 behaviourTreeStateChangedEvent.Value = GenericEnemyState.Follow;
                                 entity.Write(behaviourTreeStateChangedEvent);
+                                break;
                             }
                         }
                     }
-                    else
-                    {
-                        continue;
-                    }
+                    
                 }
                 else if (Utilities.HasComponent<BehaviourTreeState>(entity) && (entity.Read<BehaviourTreeState>().Value == GenericEnemyState.Villager_Cover || entity.Read<BehaviourTreeState>().Value == GenericEnemyState.Flee))
                 {
                     
                     BehaviourTreeState behaviourTreeStateChangedEvent = entity.Read<BehaviourTreeState>();
-                    behaviourTreeStateChangedEvent.Value = GenericEnemyState.Combat;
+                    behaviourTreeStateChangedEvent.Value = GenericEnemyState.Follow;
                     entity.Write(behaviourTreeStateChangedEvent);
                 }
+                /*
                 else if (Utilities.HasComponent<BehaviourTreeState>(entity) && entity.Read<BehaviourTreeState>().Value == GenericEnemyState.Follow)
                 {
                     var distance = UnityEngine.Vector3.Distance(entity.Read<Translation>().Value, entity.Read<Follower>().Followed._Value.Read<Translation>().Value);
@@ -138,6 +143,7 @@ public static class BehaviourTreeStateChangedEventSystemPatch
                         entity.Write(behaviourTreeStateChangedEvent);
                     }
                 }
+                */
                 
             }
         }

@@ -65,8 +65,10 @@ namespace VCreate.Core.Commands
             if (DataStructures.PlayerSettings.TryGetValue(SteamID, out Omnitool data))
             {
                 Helper.BuffCharacter(character, VCreate.Data.Buffs.Admin_Invulnerable_Buff, -1, false);
-                data.SetData("Debuff", VCreate.Data.Buffs.Admin_Invulnerable_Buff.GuidHash);
-                ctx.Reply("You're now invulnerable. Use debuff mode to return to normal.");
+                //Helper.BuffCharacter(character, VCreate.Data.Buffs.AB_Vampire_VeilOfBlood_Buff, -1, true);
+                OnHover.BuffNonPlayer(character, VCreate.Data.Buffs.Admin_Invulnerable_Buff);
+                //data.SetData("Debuff", VCreate.Data.Buffs.Admin_Invulnerable_Buff.GuidHash);
+                ctx.Reply("You're now invulnerable. Use debuff mode to return to normal. (use guids for Admin_Invulnerable_Buff and AB_Vampire_VeilOfBlood_Buff");
             }
             else
             {
