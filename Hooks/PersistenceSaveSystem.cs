@@ -2,6 +2,7 @@
 using HarmonyLib;
 using ProjectM;
 using ProjectM.Network;
+using RootMotion.FinalIK;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
@@ -69,8 +70,11 @@ namespace VPlus.Hooks
         private static bool isRunning = false;
 
         //private static Entity infinite = Entity.Null;
-        private static List<Entity> zones = [];
-
+        //private static HashSet<Entity> zones = [];
+        private static HashSet<Entity> firstNodeEntities = [];
+        private static HashSet<Entity> secondNodeEntities = [];
+        private static HashSet<Entity> thirdNodeEntities = [];
+        private static HashSet<Entity> fourthNodeEntities = [];
         private static int otherTimer = 0;
 
         public static void RunMethods()
@@ -79,7 +83,7 @@ namespace VPlus.Hooks
             timer += 1; 
             EntityCommandBufferSystem entityCommandBufferSystem = VWorld.Server.GetExistingSystem<EndSimulationEntityCommandBufferSystem>();
             EntityCommandBuffer ecb = entityCommandBufferSystem.CreateCommandBuffer();
-            if (timer > 180)
+            if (timer > 1)
             {
                 timer = 0;
                 isRunning = true;
@@ -125,7 +129,10 @@ namespace VPlus.Hooks
                             HandleCase4();
                             break;
                         case 5:
-                            CleanUp();
+                            HandleCase5();
+                            break;
+                        case 6:
+                            HandleCase6();
                             otherTimer = 0;
                             timer = 0;
                             isRunning = false;
@@ -153,31 +160,40 @@ namespace VPlus.Hooks
                         cursedZone.Write<Translation>(new Translation { Value = center });
                         domina.Write<Translation>(new Translation { Value = posdom });
                         purifier.Write<Translation>(new Translation { Value = pospur });
-                        UnitLevel unitLevel = new UnitLevel { Level = 80 };
+                        UnitLevel unitLevel = new() { Level = 80 };
                         domina.Write(unitLevel);
                         purifier.Write(unitLevel);
-                        zones.Add(domina);
-                        zones.Add(purifier);
+                        firstNodeEntities.Add(domina);
+                        firstNodeEntities.Add(purifier);
                         SetupMapIcon(nodeEntity1, VCreate.Data.Prefabs.MapIcon_POI_Resource_IronVein);
-                        zones.Add(nodeEntity1);
-                        zones.Add(cursedZone);
+                        firstNodeEntities.Add(nodeEntity1);
+                        firstNodeEntities.Add(cursedZone);
                         ServerChatUtils.SendSystemMessageToAllClients(ecb, message1);
                     }
 
                     void HandleCase2()
                     {
-                        if (!entityManager.Exists(zones.First()))
-                        {
-                            var second = zones[1];
-                            if (entityManager.Exists(second))
-                            {
-                                SystemPatchUtil.Destroy(second);
-                            }
-                        }
+                        
                         string yellowholy = VPlus.Core.Toolbox.FontColors.Yellow("Blessed");
-                        string message2 = $"The {yellowholy} Node at the Quartz Quarry is now active.";
+                        string message2 = $"The {yellowholy} Node at the Quartz Quarry is now active. The Dunley militia has mobilized...";
                         ServerChatUtils.SendSystemMessageToAllClients(ecb, message2);
-                        float3 otherfloat = new(-1743, -5, -438); //quartzmines
+                        float3 otherfloat = new(-1743, -5, -438); //quartzmines x and z
+                        float3 posoct = new(-1743, -5, -433);
+                        float3 posshep = new(-1738, -5, -433);
+                        Entity octavian = VWorld.Server.GetExistingSystem<PrefabCollectionSystem>()._PrefabGuidToEntityMap[VCreate.Data.Prefabs.CHAR_Militia_Leader_VBlood];
+                        Entity bishop = VWorld.Server.GetExistingSystem<PrefabCollectionSystem>()._PrefabGuidToEntityMap[VCreate.Data.Prefabs.CHAR_Militia_BishopOfDunley_VBlood];
+                        octavian = entityManager.Instantiate(octavian);
+                        bishop = entityManager.Instantiate(bishop);
+                        octavian.Write<Translation>(new Translation { Value = posoct });
+                        bishop.Write<Translation>(new Translation { Value =  posshep });
+                        UnitLevel unitLevel = new() { Level = 80 };
+                        octavian.Write(unitLevel);
+                        bishop.Write(unitLevel);
+                        secondNodeEntities.Add(octavian);
+                        secondNodeEntities.Add(bishop);
+
+
+
                         Entity zone3 = VWorld.Server.GetExistingSystem<PrefabCollectionSystem>()._PrefabGuidToEntityMap[VCreate.Data.Prefabs.TM_Holy_Zone_Area_T02];
                         Entity holyZone3 = VWorld.Server.EntityManager.Instantiate(zone3);
                         holyZone3.Write<Translation>(new Translation { Value = otherfloat });
@@ -186,25 +202,31 @@ namespace VPlus.Hooks
                         ModifyResourceBuffer(nodeEntity2);
                         nodeEntity2.Write<Translation>(new Translation { Value = otherfloat });
                         SetupMapIcon(nodeEntity2, VCreate.Data.Prefabs.MapIcon_POI_Resource_IronVein);
-                        zones.Add(nodeEntity2);
-                        zones.Add(holyZone3);
+                        secondNodeEntities.Add(nodeEntity2);
+                        secondNodeEntities.Add(holyZone3);
                         
                     }
 
                     void HandleCase3()
                     {
-                        if (!entityManager.Exists(zones[2]))
+                        EntityManager entityManager = VWorld.Server.EntityManager;
+
+                        foreach (var entity in firstNodeEntities)
                         {
-                            var third = zones[3];
-                            if (entityManager.Exists(third))
+                            if (entityManager.Exists(entity))
                             {
-                                SystemPatchUtil.Destroy(third);
+                                SystemPatchUtil.Destroy(entity);
                             }
+
                         }
+                        firstNodeEntities.Clear();
+
                         string purpleblursed = VPlus.Core.Toolbox.FontColors.Purple("Blursed");
-                        string message3 = $"The {purpleblursed} Node at the Silver Mine is now active.";
+                        string message3 = $"The {purpleblursed} Node at the Silver Mine is now active. The Church of Luminance is taking action...";
                         ServerChatUtils.SendSystemMessageToAllClients(ecb, message3);
                         float3 float3 = new(-2326, 15, -390); //silvermines
+                        float3 posbar = new(-2326, 15, -385);
+                        float3 posover = new(-2331, 15, -385);
                         Entity zone2 = VWorld.Server.GetExistingSystem<PrefabCollectionSystem>()._PrefabGuidToEntityMap[VCreate.Data.Prefabs.TM_Cursed_Zone_Area01];
                         Entity holyZone2 = VWorld.Server.EntityManager.Instantiate(zone2);
                         Entity zone4 = VWorld.Server.GetExistingSystem<PrefabCollectionSystem>()._PrefabGuidToEntityMap[VCreate.Data.Prefabs.TM_Holy_Zone_Area_T02];
@@ -213,34 +235,46 @@ namespace VPlus.Hooks
                         holyZone2.Write<Translation>(new Translation { Value = float3 });
                         Entity node3 = VWorld.Server.GetExistingSystem<PrefabCollectionSystem>()._PrefabGuidToEntityMap[VCreate.Data.Prefabs.TM_Crystal_01_Stage1_Resource];
                         Entity nodeEntity3 = entityManager.Instantiate(node3);
+
+                        Entity overseer = VWorld.Server.GetExistingSystem<PrefabCollectionSystem>()._PrefabGuidToEntityMap[VCreate.Data.Prefabs.CHAR_ChurchOfLight_Overseer_VBlood];
+                        Entity baron = VWorld.Server.GetExistingSystem<PrefabCollectionSystem>()._PrefabGuidToEntityMap[VCreate.Data.Prefabs.CHAR_ChurchOfLight_Sommelier_VBlood];
+                        overseer = entityManager.Instantiate(overseer);
+                        baron = entityManager.Instantiate(baron);
+                        overseer.Write<Translation>(new Translation { Value = posover });
+                        baron.Write<Translation>(new Translation { Value = posbar });
+                        UnitLevel unitLevel = new() { Level = 80 };
+                        overseer.Write(unitLevel);
+                        baron.Write(unitLevel);
+                        thirdNodeEntities.Add(overseer);
+                        thirdNodeEntities.Add(baron);
+
+
+
                         ModifyResourceBuffer(nodeEntity3);
                         nodeEntity3.Write<Translation>(new Translation { Value = float3 });
                         holyZone4.Write<Translation>(new Translation { Value = float3 });
                         SetupMapIcon(nodeEntity3, VCreate.Data.Prefabs.MapIcon_POI_Resource_IronVein);
-                        zones.Add(nodeEntity3);
-                        zones.Add(holyZone2);
-                        zones.Add(holyZone4);
+                        thirdNodeEntities.Add(nodeEntity3);
+                        thirdNodeEntities.Add(holyZone2);
+                        thirdNodeEntities.Add(holyZone4);
                         
                     }
                     void HandleCase4()
                     {
-                        if (!entityManager.Exists(zones[4]))
+                        foreach (var entity in secondNodeEntities)
                         {
-                            var fourth = zones[5];
-                            if (entityManager.Exists(fourth))
+                            if (entityManager.Exists(entity))
                             {
-                                SystemPatchUtil.Destroy(fourth);
+                                SystemPatchUtil.Destroy(entity);
                             }
-                            var fifth = zones[6];
-                            if (entityManager.Exists(fifth))
-                            {
-                                SystemPatchUtil.Destroy(fifth);
-                            }
+
                         }
+                        secondNodeEntities.Clear();
                         string redcondemned = VPlus.Core.Toolbox.FontColors.Red("Condemned");
-                        string message4 = $"The {redcondemned} Node at the Spider Cave is now active.";
+                        string message4 = $"The {redcondemned} Node at the Spider Cave is now active. The cursed undead rally their forces...";
                         ServerChatUtils.SendSystemMessageToAllClients(ecb, message4);
                         float3 float3 = new(-1087, 0, 47); //crystal 01 position
+                        float3 possmith = new(-1086, 0, 48);
                         Entity zone3 = VWorld.Server.GetExistingSystem<PrefabCollectionSystem>()._PrefabGuidToEntityMap[VCreate.Data.Prefabs.TM_Cursed_Zone_Area01];
                         Entity holyZone3 = VWorld.Server.EntityManager.Instantiate(zone3);
                         Entity zone5 = VWorld.Server.GetExistingSystem<PrefabCollectionSystem>()._PrefabGuidToEntityMap[VCreate.Data.Prefabs.TM_Holy_Zone_Area_T02];
@@ -249,6 +283,17 @@ namespace VPlus.Hooks
                         Entity holyZone6 = VWorld.Server.EntityManager.Instantiate(zone6);
                         holyZone3.Write<Translation>(new Translation { Value = float3 });
 
+
+
+                        Entity smith = VWorld.Server.GetExistingSystem<PrefabCollectionSystem>()._PrefabGuidToEntityMap[VCreate.Data.Prefabs.CHAR_ChurchOfLight_Overseer_VBlood];
+                        smith = entityManager.Instantiate(smith);
+                        smith.Write<Translation>(new Translation { Value = possmith });
+                        UnitLevel unitLevel = new() { Level = 80 };
+                        smith.Write(unitLevel);
+                        fourthNodeEntities.Add(smith);
+
+
+
                         Entity node4 = VWorld.Server.GetExistingSystem<PrefabCollectionSystem>()._PrefabGuidToEntityMap[VCreate.Data.Prefabs.TM_Crystal_01_Stage1_Resource];
                         Entity nodeEntity4 = entityManager.Instantiate(node4);
                         ModifyResourceBuffer(nodeEntity4);
@@ -256,11 +301,39 @@ namespace VPlus.Hooks
                         holyZone5.Write<Translation>(new Translation { Value = float3 });
                         holyZone6.Write<Translation>(new Translation { Value = float3 });
                         SetupMapIcon(nodeEntity4, VCreate.Data.Prefabs.MapIcon_POI_Resource_IronVein);
-                        zones.Add(holyZone3);
-                        zones.Add(holyZone5);
-                        zones.Add(nodeEntity4);
-                        zones.Add(holyZone6);
+                        fourthNodeEntities.Add(holyZone3);
+                        fourthNodeEntities.Add(holyZone5);
+                        fourthNodeEntities.Add(nodeEntity4);
+                        fourthNodeEntities.Add(holyZone6);
                     }
+
+                    void HandleCase5()
+                    {
+                        foreach (var entity in thirdNodeEntities)
+                        {
+                            if (entityManager.Exists(entity))
+                            {
+                                SystemPatchUtil.Destroy(entity);
+                            }
+
+                        }
+                        thirdNodeEntities.Clear();
+                    }
+
+                    void HandleCase6()
+                    {
+                        foreach (var entity in fourthNodeEntities)
+                        {
+                            if (entityManager.Exists(entity))
+                            {
+                                SystemPatchUtil.Destroy(entity);
+                            }
+
+                        }
+                        fourthNodeEntities.Clear();
+                    }
+
+                    
 
                     void SetupMapIcon(Entity entity, PrefabGUID prefabGUID)
                     {
@@ -283,18 +356,45 @@ namespace VPlus.Hooks
         {
             EntityManager entityManager = VWorld.Server.EntityManager;
 
-            foreach (var zone in zones)
+            foreach (var entity in firstNodeEntities)
             {
-                if (entityManager.Exists(zone))
+                if (entityManager.Exists(entity))
                 {
-                    SystemPatchUtil.Destroy(zone);
+                    SystemPatchUtil.Destroy(entity);
                 }
-                else
-                {
-                    Plugin.Logger.LogInfo("Zone already destroyed.");
-                }
+                
             }
-            zones.Clear();
+            firstNodeEntities.Clear();
+
+            foreach (var entity in secondNodeEntities)
+            {
+                if (entityManager.Exists(entity))
+                {
+                    SystemPatchUtil.Destroy(entity);
+                }
+                
+            }
+            secondNodeEntities.Clear();
+
+            foreach (var entity in thirdNodeEntities)
+            {
+                if (entityManager.Exists(entity))
+                {
+                    SystemPatchUtil.Destroy(entity);
+                }
+                
+            }
+            thirdNodeEntities.Clear();
+
+            foreach (var entity in fourthNodeEntities)
+            {
+                if (entityManager.Exists(entity))
+                {
+                    SystemPatchUtil.Destroy(entity);
+                }
+                
+            }
+            fourthNodeEntities.Clear();
         }
         public static void ModifyResourceBuffer(Entity entity)
         {
