@@ -83,7 +83,7 @@ namespace VPlus.Hooks
             timer += 1; 
             EntityCommandBufferSystem entityCommandBufferSystem = VWorld.Server.GetExistingSystem<EndSimulationEntityCommandBufferSystem>();
             EntityCommandBuffer ecb = entityCommandBufferSystem.CreateCommandBuffer();
-            if (timer > 1)
+            if (timer > 180)
             {
                 timer = 0;
                 isRunning = true;
@@ -180,7 +180,7 @@ namespace VPlus.Hooks
                         float3 otherfloat = new(-1743, -5, -438); //quartzmines x and z
                         float3 posoct = new(-1743, -5, -433);
                         float3 posshep = new(-1738, -5, -433);
-                        Entity octavian = VWorld.Server.GetExistingSystem<PrefabCollectionSystem>()._PrefabGuidToEntityMap[VCreate.Data.Prefabs.CHAR_Militia_Leader_VBlood];
+                        Entity octavian = VWorld.Server.GetExistingSystem<PrefabCollectionSystem>()._PrefabGuidToEntityMap[VCreate.Data.Prefabs.CHAR_ChurchOfLight_Cardinal_VBlood];
                         Entity bishop = VWorld.Server.GetExistingSystem<PrefabCollectionSystem>()._PrefabGuidToEntityMap[VCreate.Data.Prefabs.CHAR_Militia_BishopOfDunley_VBlood];
                         octavian = entityManager.Instantiate(octavian);
                         bishop = entityManager.Instantiate(bishop);
@@ -225,8 +225,8 @@ namespace VPlus.Hooks
                         string message3 = $"The {purpleblursed} Node at the Silver Mine is now active. The Church of Luminance is taking action...";
                         ServerChatUtils.SendSystemMessageToAllClients(ecb, message3);
                         float3 float3 = new(-2326, 15, -390); //silvermines
-                        float3 posbar = new(-2326, 15, -385);
-                        float3 posover = new(-2331, 15, -385);
+                        float3 posbar = new(-2326, 15, -395);
+                        float3 posover = new(-2331, 15, -395);
                         Entity zone2 = VWorld.Server.GetExistingSystem<PrefabCollectionSystem>()._PrefabGuidToEntityMap[VCreate.Data.Prefabs.TM_Cursed_Zone_Area01];
                         Entity holyZone2 = VWorld.Server.EntityManager.Instantiate(zone2);
                         Entity zone4 = VWorld.Server.GetExistingSystem<PrefabCollectionSystem>()._PrefabGuidToEntityMap[VCreate.Data.Prefabs.TM_Holy_Zone_Area_T02];
@@ -285,7 +285,7 @@ namespace VPlus.Hooks
 
 
 
-                        Entity smith = VWorld.Server.GetExistingSystem<PrefabCollectionSystem>()._PrefabGuidToEntityMap[VCreate.Data.Prefabs.CHAR_ChurchOfLight_Overseer_VBlood];
+                        Entity smith = VWorld.Server.GetExistingSystem<PrefabCollectionSystem>()._PrefabGuidToEntityMap[VCreate.Data.Prefabs.CHAR_Undead_CursedSmith_VBlood];
                         smith = entityManager.Instantiate(smith);
                         smith.Write<Translation>(new Translation { Value = possmith });
                         UnitLevel unitLevel = new() { Level = 80 };

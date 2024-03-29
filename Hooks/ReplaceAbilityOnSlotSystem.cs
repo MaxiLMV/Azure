@@ -78,32 +78,15 @@ namespace VPlus.Hooks
         {
             DynamicBuffer<ReplaceAbilityOnSlotBuff> buffer = entityManager.GetBuffer<ReplaceAbilityOnSlotBuff>(entity);
             int bufferLength = buffer.Length;
+            if (bufferLength == 0) return;
             User user = Utilities.GetComponentData<User>(entityManager.GetComponentData<PlayerCharacter>(owner).UserEntity);
             ulong steamID = user.PlatformId;
-            if (bufferLength == 1)
+            if (buffer[0].NewGroupId == VCreate.Data.Prefabs.AB_Vampire_Unarmed_Primary_MeleeAttack_AbilityGroup)
             {
-                // unequip or equipping bone weapon here or fishing pole
-                if (Databases.playerRanks.TryGetValue(steamID, out RankData rankData) && rankData.FishingPole)
-                {
-                    HandleFishingPole(entityManager, entity, owner, buffer);
-                    return;
-                }
-                else if (buffer[0].NewGroupId == fishingPole)
-                {
-                    // fishing pole equipped
-
-                    if (Databases.playerRanks.TryGetValue(user.PlatformId, out RankData data))
-                    {
-                        data.FishingPole = true;
-                        ChatCommands.SavePlayerRanks();
-                        return;
-                    }
-                    else
-                    {
-                        Plugin.Logger.LogInfo("Player rank not found for setting spells.");
-                        return;
-                    }
-                }
+               
+                HandleUnarmed(entityManager, entity, owner, buffer);
+                return;
+               
                 //HandleFishingPole(entityManager, entity, owner, buffer);
             }
             else if (bufferLength == 3)
@@ -147,7 +130,7 @@ namespace VPlus.Hooks
                     abilityCooldownData.Cooldown._Value = cooldown; 
                     castEntity.Write(abilityCooldownData);
 
-                    Plugin.Logger.LogInfo("Cooldown modified.");
+                    //Plugin.Logger.LogInfo("Cooldown modified.");
                 }
                 catch (System.Exception ex)
                 {
@@ -160,7 +143,7 @@ namespace VPlus.Hooks
             }
         }
 
-        private static void HandleFishingPole(EntityManager entityManager, Entity _, Entity owner, DynamicBuffer<ReplaceAbilityOnSlotBuff> buffer)
+        private static void HandleUnarmed(EntityManager entityManager, Entity _, Entity owner, DynamicBuffer<ReplaceAbilityOnSlotBuff> buffer)
         {
             //Plugin.Logger.LogInfo("Fishing pole unequipped, modifiying unarmed slots...");
             Entity userEntity = entityManager.GetComponentData<PlayerCharacter>(owner).UserEntity;
@@ -169,52 +152,35 @@ namespace VPlus.Hooks
 
             if (Databases.playerRanks.TryGetValue(steamID, out RankData rankData))
             {
-                if (!rankData.FishingPole)
+                
+                // Adjust abilities based on the player's spell choices
+                if (rankData.Spells.Count != 0)
                 {
-                    //Plugin.Logger.LogInfo("No adjustments needed, fishing pole not previously equipped.");
-                    return;
-                }
-                else
-                {
-                    // Adjust abilities based on the player's spell choices
-                    if (rankData.Spells.Count != 0)
+                    ReplaceAbilityOnSlotBuff item = buffer[0];
+                    ReplaceAbilityOnSlotBuff newItem = item;
+
+                    PrefabGUID firstSpellGUID = new PrefabGUID(rankData.Spells.First());
+                    PrefabGUID secondSpellGUID = new PrefabGUID(rankData.Spells.Last());
+
+                    if (rankData.Rank < 1)// first and second slot locked until rank 1 and 3 for now
                     {
-                        ReplaceAbilityOnSlotBuff item = buffer[0];
-                        ReplaceAbilityOnSlotBuff newItem = item;
-
-                        PrefabGUID firstSpellGUID = new PrefabGUID(rankData.Spells.First());
-                        PrefabGUID secondSpellGUID = new PrefabGUID(rankData.Spells.Last());
-
-                        if (rankData.Rank < 1)// first and second slot locked until rank 1 and 3 for now
-                        {
-                            rankData.FishingPole = false;
-                            ChatCommands.SavePlayerRanks();
-                            return;
-                        }
-                        newItem.NewGroupId = firstSpellGUID;
-                        newItem.Slot = 1;
-                        buffer.Add(newItem);
-
-                        if (rankData.Rank < 3)
-                        {
-                            rankData.FishingPole = false;
-                            ChatCommands.SavePlayerRanks();
-                            return;
-                        }
-                        newItem.NewGroupId = secondSpellGUID;
-                        newItem.Slot = 4;
-                        buffer.Add(newItem);
-                        rankData.FishingPole = false; // Reset the flag as the fishing pole is being unequipped
-                        ChatCommands.SavePlayerRanks();
-                        // Optionally, add more logic here for additional adjustments
-                        //Plugin.Logger.LogInfo("Abilities adjusted.");
+                        return;
                     }
-                    else
+                    newItem.NewGroupId = firstSpellGUID;
+                    newItem.Slot = 1;
+                    buffer.Add(newItem);
+
+                    if (rankData.Rank < 3)
                     {
-                        Plugin.Logger.LogInfo("No spells to adjust.");
+                        return;
                     }
+                    newItem.NewGroupId = secondSpellGUID;
+                    newItem.Slot = 4;
+                    buffer.Add(newItem);
+                    // Optionally, add more logic here for additional adjustments
+                    //Plugin.Logger.LogInfo("Abilities adjusted.");
                 }
-                return;
+                    
             }
         }
 
