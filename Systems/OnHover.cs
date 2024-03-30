@@ -245,6 +245,7 @@ namespace VCreate.Systems
                 familiar.Write(bloodConsumeSource);
 
             }
+            
             Utilities.SetComponentData(familiar, follower);
             Utilities.SetComponentData(familiar, teamReference);
             ModifiablePrefabGUID modifiablePrefabGUID = ModifiablePrefabGUID.CreateFixed(VCreate.Data.Prefabs.Faction_Players);

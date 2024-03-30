@@ -15,6 +15,7 @@ using User = ProjectM.Network.User;
 using VRising.GameData.Models;
 using static VCF.Core.Basics.RoleCommands;
 using static VCreate.Core.Services.PlayerService;
+using VCreate.Core.Services;
 
 namespace WorldBuild.Hooks
 {
@@ -91,7 +92,7 @@ namespace WorldBuild.Hooks
                             Plugin.Log.LogInfo("Permissions >> ownership, allowed.");
                             continue;
                         }
-                        else if (!TileOperationUtility.HasValidCastleHeartConnection(user, tileEntity))
+                        else if (!TileOperationUtility.HasValidCastleHeartConnectionOrAllied(user, tileEntity))
                         {
                             Plugin.Log.LogInfo("Disallowing move based on ownership.");
                             SystemPatchUtil.Destroy(job);
@@ -240,7 +241,7 @@ namespace WorldBuild.Hooks
                             Plugin.Log.LogInfo("Permissions >> ownership, allowed.");
                             __result = true;
                         }
-                        else if (!TileOperationUtility.HasValidCastleHeartConnection(entity.Read<PlayerCharacter>().UserEntity.Read<User>(), tileModelEntity)) // returns false if the interactor is not the owner of the castle heart
+                        else if (!TileOperationUtility.HasValidCastleHeartConnectionOrAllied(entity.Read<PlayerCharacter>().UserEntity.Read<User>(), tileModelEntity)) // returns false if the interactor is not the owner of the castle heart
                         {
                             Plugin.Log.LogInfo("Disallowing dismantle based on ownership.");
                             __result = false;
@@ -263,7 +264,7 @@ namespace WorldBuild.Hooks
 
     public static class TileOperationUtility
     {
-        public static bool HasValidCastleHeartConnection(User user, Entity tileModelEntity)
+        public static bool HasValidCastleHeartConnectionOrAllied(User user, Entity tileModelEntity)
         {
             if (!tileModelEntity.Has<CastleHeartConnection>()) return false;
             else
@@ -277,7 +278,67 @@ namespace WorldBuild.Hooks
                     Plugin.Log.LogInfo("Castle heart entity not null. Checking owner...");
                     Entity userOwner = castleHeart.Read<UserOwner>().Owner._Entity;
                     ulong platformId = userOwner.Read<User>().PlatformId;
-                    if (!user.PlatformId.Equals(platformId)) return false;
+                    if (!user.PlatformId.Equals(platformId))
+                    { 
+                        //want to check for ally here
+                        Plugin.Log.LogInfo("Owner not the same as interactor. Checking for clanmate...");
+                        try
+                        {
+                            if (user.ClanEntity.TryGetSyncedEntity(out Entity clan))
+                            {
+                                if (Utilities.HasComponent<ClanTeam>(clan))
+                                {
+                                    ClanTeam clanTeam = clan.Read<ClanTeam>();
+                                    int team = clanTeam.TeamValue; // team value of the interactor
+                                    User tileOwner = userOwner.Read<User>();
+                                    if (tileOwner.ClanEntity.TryGetSyncedEntity(out Entity tileClan))
+                                    {
+                                        if (Utilities.HasComponent<ClanTeam>(tileClan))
+                                        {
+                                            ClanTeam tileClanTeam = tileClan.Read<ClanTeam>();
+                                            int tileTeam = tileClanTeam.TeamValue;
+                                            if (team.Equals(tileTeam))
+                                            {
+                                                Plugin.Log.LogInfo("Clanmate found, allowing.");
+                                                return true;
+                                            }
+                                            else
+                                            {
+                                                Plugin.Log.LogInfo("No clanmate found, disallowing.");
+                                                return false;
+                                            }
+                                        }
+                                        else
+                                        {
+                                            Plugin.Log.LogInfo("No clan found, disallowing.");
+                                            return false;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        Plugin.Log.LogInfo("No clan found for tileOwner, disallowing.");
+                                        return false;
+                                    }
+                                }
+                                else
+                                {
+                                    Plugin.Log.LogInfo("No clan found for interactor, disallowing.");
+                                    return false;
+                                }
+                            }
+                            else
+                            {
+                                Plugin.Log.LogInfo("No clan found, disallowing.");
+                                return false;
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            Plugin.Log.LogInfo("Error: " + e.Message);
+                            Plugin.Log.LogInfo("Couldn't verify clan status, disallowing.");
+                            return false;
+                        }
+                    }
                     return true;
                 }
             }
