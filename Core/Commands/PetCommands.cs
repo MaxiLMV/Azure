@@ -359,7 +359,7 @@ namespace VCreate.Core.Commands
             }
         }
 
-        [Command(name: "listStats", shortHand: "liststats", adminOnly: false, usage: ".liststats", description: "Lists stats of active familiar.")]
+        [Command(name: "listStats", shortHand: "stats", adminOnly: false, usage: ".stats", description: "Lists stats of active familiar.")]
 
         public static void ListFamStats(ChatCommandContext ctx)
         {
@@ -378,9 +378,8 @@ namespace VCreate.Core.Commands
                         string physicalpower = White(stats[3].ToString());
                         string spellpower = White(stats[4].ToString());
                         string physcritchance = White(stats[5].ToString());
-                        
-                        string spellcritchance = White(stats[6].ToString());
-                        string physcritdamage = White(stats[7].ToString());
+                        string physcritdamage = White(stats[6].ToString());
+                        string spellcritchance = White(stats[7].ToString());
                         string spellcritdamage = White(stats[8].ToString());
                         ctx.Reply($"Max Health: {maxhealth}, Cast Speed: {attackspeed}, Primary Attack Speed: {primaryattackspeed}, Physical Power: {physicalpower}, Spell Power: {spellpower}, Physical Crit Chance: {physcritchance}, Physical Crit Damage: {physcritdamage}, Spell Crit Chance: {spellcritchance}, Spell Crit Damage: {spellcritdamage}");
                         return;
@@ -469,7 +468,7 @@ namespace VCreate.Core.Commands
         }
         */
 
-        [Command(name: "combatModeToggleTest", shortHand: "combat", adminOnly: false, usage: ".combat", description: "Toggles combat mode for familiar.")]
+        [Command(name: "combatModeToggle", shortHand: "combat", adminOnly: false, usage: ".combat", description: "Toggles combat mode for familiar.")]
         public static void MethodFive(ChatCommandContext ctx)
         {
             ulong platformId = ctx.User.PlatformId;

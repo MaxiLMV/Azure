@@ -9,6 +9,7 @@ using Unity.Entities;
 using UnityEngine;
 using VCreate.Core;
 using VCreate.Core.Toolbox;
+using VCreate.Systems;
 using VRising.GameData.Methods;
 using VRising.GameData.Models;
 using static ProjectM.VoiceMapping;
@@ -69,19 +70,18 @@ namespace VCreate.Hooks
             {
                 UpdatePetExperiencePetKill(killer, died);
             }
-
+            /*
             public static void UpdatePetExperiencePlayerKill(Entity killer, Entity died)
             {
                 if (!killer.Has<FollowerBuffer>()) return; // if doesn't have a follower buffer, return
 
                 var followers = killer.ReadBuffer<FollowerBuffer>();
 
-                var enumerator = followers.GetEnumerator();
 
-                while (enumerator.MoveNext())
+                foreach(var pet in followers)
                 {
                     // also shinies
-                    Entity follower = enumerator.Current.Entity._Entity;
+                    Entity follower = pet.Entity._Entity;
                     if (follower.Read<Team>().Value.Equals(killer.Read<Team>().Value) && DataStructures.PlayerPetsMap.TryGetValue(killer.Read<PlayerCharacter>().UserEntity.Read<User>().PlatformId, out var profiles))
                     {
                         if (!profiles.TryGetValue(follower.Read<PrefabGUID>().LookupName().ToString(), out var profile) || !profile.Combat) continue;
@@ -94,30 +94,7 @@ namespace VCreate.Hooks
 
                         if (profile.CurrentExperience >= toNext && profile.Level < 80)
                         {
-                            profile.CurrentExperience = 0;
-                            profile.Level++;
-
-                            Plugin.Log.LogInfo("Pet level up! Setting level and saving stats...");
-                            follower.Write<UnitLevel>(new UnitLevel { Level = profile.Level });
-                            UnitStatSet(follower); // need to review
-
-                            UnitStats unitStats = follower.Read<UnitStats>();
-                            Health health = follower.Read<Health>();
-                            float maxhealth = health.MaxHealth._Value;
-                            float attackspeed = unitStats.AttackSpeed._Value;
-                            float primaryattackspeed = unitStats.PrimaryAttackSpeed._Value;
-                            float physicalpower = unitStats.PhysicalPower._Value;
-                            float spellpower = unitStats.SpellPower._Value;
-                            float physicalcrit = unitStats.PhysicalCriticalStrikeChance._Value;
-                            float physicalcritdmg = unitStats.PhysicalCriticalStrikeDamage._Value;
-                            float spellcrit = unitStats.SpellCriticalStrikeChance._Value;
-                            float spellcritdmg = unitStats.SpellCriticalStrikeDamage._Value;
-                            profile.Stats.Clear();
-                            profile.Stats.AddRange([maxhealth, attackspeed, primaryattackspeed, physicalpower, spellpower, physicalcrit, physicalcritdmg, spellcrit, spellcritdmg]);
-                            profiles[follower.Read<PrefabGUID>().LookupName().ToString()] = profile;
-                            DataStructures.PlayerPetsMap[killer.Read<PlayerCharacter>().UserEntity.Read<User>().PlatformId] = profiles;
-                            DataStructures.SavePetExperience();
-                            break;
+                            UpdatePetLevelAndStats(profile, follower, killer, profiles);
                         }
                         else
                         {
@@ -151,31 +128,7 @@ namespace VCreate.Hooks
 
                     if (profile.CurrentExperience >= toNext && profile.Level < 80)
                     {
-                        profile.CurrentExperience = 0;
-                        profile.Level++;
-
-                        Plugin.Log.LogInfo("Pet level up! Setting level and saving stats.");
-                        pet.Write<UnitLevel>(new UnitLevel { Level = profile.Level });
-
-                        //UnitStats unitStats = pet.Read<UnitStats>();
-                        UnitStatSet(pet);
-
-                        UnitStats unitStats = pet.Read<UnitStats>();
-                        Health health = pet.Read<Health>();
-                        float maxhealth = health.MaxHealth._Value;
-                        float attackspeed = unitStats.AttackSpeed._Value;
-                        float primaryattackspeed = unitStats.PrimaryAttackSpeed._Value;
-                        float physicalpower = unitStats.PhysicalPower._Value;
-                        float spellpower = unitStats.SpellPower._Value;
-                        float physicalcrit = unitStats.PhysicalCriticalStrikeChance._Value;
-                        float physicalcritdmg = unitStats.PhysicalCriticalStrikeDamage._Value;
-                        float spellcrit = unitStats.SpellCriticalStrikeChance._Value;
-                        float spellcritdmg = unitStats.SpellCriticalStrikeDamage._Value;
-                        profile.Stats.Clear();
-                        profile.Stats.AddRange([maxhealth, attackspeed, primaryattackspeed, physicalpower, spellpower, physicalcrit, physicalcritdmg, spellcrit, spellcritdmg]);
-                        profiles[pet.Read<PrefabGUID>().LookupName().ToString()] = profile;
-                        DataStructures.PlayerPetsMap[platformId] = profiles;
-                        DataStructures.SavePetExperience();
+                        UpdatePetLevelAndStats(profile, pet, killer, profiles);
                     }
                     else
                     {
@@ -186,22 +139,116 @@ namespace VCreate.Hooks
                     }
                 }
             }
+            */
 
-            public static readonly PrefabGUID[] RandomPrefabs = new PrefabGUID[]
+            public static void UpdatePetExperiencePlayerKill(Entity killer, Entity died)
             {
-                new PrefabGUID(-646796985),   // BloodBuff_Assault
-                new PrefabGUID(1536493953),    // BloodBuff_CriticalStrike
-                new PrefabGUID(1096233037),     // BloodBuff_Empower also do lightning weapon, etc.
+                if (!killer.Has<FollowerBuffer>()) return;
+
+                var followers = killer.ReadBuffer<FollowerBuffer>();
+                foreach (var pet in followers)
+                {
+                    Entity follower = pet.Entity._Entity;
+                    if (IsPetOfPlayer(follower, killer))
+                    {
+                        ProcessPetExperienceUpdate(follower, died, killer);
+                    }
+                }
+            }
+
+            public static void UpdatePetExperiencePetKill(Entity killer, Entity died)
+            {
+                Entity pet = killer; // Assuming the killer is always a pet in this context.
+                Entity player = killer.Read<Follower>().Followed._Value;
+                if (IsPetOfPlayer(pet, player))
+                {
+                    ProcessPetExperienceUpdate(pet, died, player);
+                }
+            }
+
+            private static bool IsPetOfPlayer(Entity pet, Entity player)
+            {
+                return pet.Read<Team>().Value.Equals(player.Read<Team>().Value)
+                       && DataStructures.PlayerPetsMap.TryGetValue(player.Read<PlayerCharacter>().UserEntity.Read<User>().PlatformId, out var profiles)
+                       && profiles.ContainsKey(pet.Read<PrefabGUID>().LookupName().ToString());
+            }
+
+            private static void ProcessPetExperienceUpdate(Entity pet, Entity died, Entity owner)
+            {
+                if (!DataStructures.PlayerPetsMap.TryGetValue(owner.Read<PlayerCharacter>().UserEntity.Read<User>().PlatformId, out var profiles)
+                    || !profiles.TryGetValue(pet.Read<PrefabGUID>().LookupName().ToString(), out var profile)
+                    || !profile.Combat) return;
+
+                UnitLevel unitLevel = died.Read<UnitLevel>();
+                float baseExp = unitLevel.Level;
+
+                profile.CurrentExperience += (int)baseExp;
+                double toNext = Math.Pow(profile.Level, 2);
+
+                if (profile.CurrentExperience >= toNext && profile.Level < 80)
+                {
+                    UpdatePetLevelAndStats(profile, pet, owner, profiles);
+                }
+                else
+                {
+                    Plugin.Log.LogInfo("Giving pet experience...");
+                    profiles[pet.Read<PrefabGUID>().LookupName().ToString()] = profile;
+                    DataStructures.PlayerPetsMap[owner.Read<PlayerCharacter>().UserEntity.Read<User>().PlatformId] = profiles;
+                    DataStructures.SavePetExperience();
+                }
+            }
+
+            public static void UpdatePetLevelAndStats(PetExperienceProfile profile, Entity follower, Entity killer, Dictionary<string, PetExperienceProfile> profiles)
+            {
+                profile.CurrentExperience = 0;
+                profile.Level++;
+
+                Plugin.Log.LogInfo("Pet level up! Saving stats.");
+                follower.Write<UnitLevel>(new UnitLevel { Level = profile.Level });
+                UnitStatSet(follower); // This method's implementation is assumed to be elsewhere
+
+                UnitStats unitStats = follower.Read<UnitStats>();
+                Health health = follower.Read<Health>();
+
+                // Assuming stats are collected and updated in a similar manner
+                float[] stats =
+                [
+                    health.MaxHealth._Value,
+                    unitStats.AttackSpeed._Value,
+                    unitStats.PrimaryAttackSpeed._Value,
+                    unitStats.PhysicalPower._Value,
+                    unitStats.SpellPower._Value,
+                    unitStats.PhysicalCriticalStrikeChance._Value,
+                    unitStats.PhysicalCriticalStrikeDamage._Value,
+                    unitStats.SpellCriticalStrikeChance._Value,
+                    unitStats.SpellCriticalStrikeDamage._Value
+                ];
+
+                profile.Stats.Clear();
+                profile.Stats.AddRange(stats);
+                profiles[follower.Read<PrefabGUID>().LookupName().ToString()] = profile;
+                DataStructures.PlayerPetsMap[killer.Read<PlayerCharacter>().UserEntity.Read<User>().PlatformId] = profiles;
+                DataStructures.SavePetExperience();
+            }
+
+
+
+
+            public static readonly PrefabGUID[] RandomPrefabs =
+            [
+                //new PrefabGUID(-646796985),   // BloodBuff_Assault
+                //new PrefabGUID(1536493953),    // BloodBuff_CriticalStrike
+                //new PrefabGUID(1096233037),     // BloodBuff_Empower also do lightning weapon, etc.
                 new PrefabGUID(348724578),   // ignite
                 new PrefabGUID(-1576512627),    // static
                 new PrefabGUID(-1246704569),     // leech
                 new PrefabGUID(1723455773),   // phantasm
                 new PrefabGUID(27300215),    // chill
-                new PrefabGUID(325758519),      // condemn
-                new PrefabGUID(397097531)     //nulifyandempower
+                new PrefabGUID(325758519)     // condemn
+                //new PrefabGUID(397097531)     //nulifyandempower
 
                 // Add more prefabs as needed
-            };
+            ];
 
             public static PrefabGUID GetRandomPrefab()
             {
@@ -416,7 +463,7 @@ namespace VCreate.Hooks
                 EntityCategory diedCategory = died.Read<EntityCategory>();
                 if (died.Read<PrefabGUID>().GuidHash.Equals(VCreate.Data.Prefabs.CHAR_Mount_Horse.GuidHash)) return;
                 PrefabGUID toCheck = died.Read<PrefabGUID>();
-                if (toCheck.LookupName().ToLower().Contains("unholy") || toCheck.LookupName().ToLower().Contains("villager") || toCheck.LookupName().ToLower().Contains("deer")) return;
+                
                 if ((int)diedCategory.UnitCategory < 5 && !died.Read<PrefabGUID>().LookupName().ToLower().Contains("vblood"))
                 {
                     gem = new(UnitToGemMapping.UnitCategoryToGemPrefab[(UnitToGemMapping.UnitType)diedCategory.UnitCategory]);
@@ -424,6 +471,12 @@ namespace VCreate.Hooks
                 }
                 else if (died.Read<PrefabGUID>().LookupName().ToLower().Contains("vblood"))
                 {
+                    PrefabGUID solarus = new(-740796338);
+                    PrefabGUID monster = new(1233988687);
+                    PrefabGUID manticore = new(980068444);
+                    PrefabGUID beast = new(-1936575244);
+
+                    if (died.Read<PrefabGUID>().Equals(solarus) || died.Read<PrefabGUID>().Equals(monster) || died.Read<PrefabGUID>().Equals(manticore) || died.Read<PrefabGUID>().Equals(beast)) return;
                     gem = new(UnitToGemMapping.UnitCategoryToGemPrefab[UnitToGemMapping.UnitType.VBlood]);
                     HandleRoll(gem, chance / vfactor, died, killer); //dont forget to divide by vfactor after testing
                 }
