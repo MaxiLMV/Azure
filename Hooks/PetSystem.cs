@@ -403,8 +403,8 @@ namespace VCreate.Hooks
                     { UnitType.Undead, 1898237421 }, // Item_Ingredient_Gem_Emerald_T03
                     { UnitType.Demon, -1963826510 }, // Item_Ingredient_Gem_Miststone_T03
                     { UnitType.Mechanical, -2051574178 }, // Item_Ingredient_Gem_Topaz_T03
-                    { UnitType.Beast, -106283194 }, // Item_Ingredient_Gem_Amethyst_T03
-                    { UnitType.VBlood, 188653143 } // Item_Ingredient_Gem_Ruby_T04
+                    { UnitType.Beast, 1705028227 }, // Item_Ingredient_Gem_Amethyst_T03
+                    { UnitType.VBlood, 74811721 } // Item_Ingredient_Gem_Ruby_T04
                 };
             }
 
