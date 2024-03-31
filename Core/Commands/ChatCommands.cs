@@ -349,7 +349,7 @@ namespace VPlus.Core.Commands
                 {
                     data.FishingPole = true;
                     ChatCommands.SavePlayerRanks();
-                    ctx.Reply("Change spells to the ones you want in your unarmed slot. When done, toggle this again.");
+                    ctx.Reply("Change spells to the ones you want in your unarmed slot(s). When done, toggle this again.");
                 }
             }
             else

@@ -176,6 +176,12 @@ namespace VPlus.Hooks
                 // divide points gained
                 points /= Plugin.rankPointsFactor;
             }
+            if (Databases.playerPrestige.TryGetValue(user.PlatformId, out PrestigeData prestigeData))
+            {
+                int prestigeCount = prestigeData.Prestiges;
+                float multiplier = 1 + prestigeCount * 0.05f; // Calculate the multiplier based on the number of prestiges
+                points = (int)(points * multiplier); // Calculate the total points gained
+            }
             // message player points earned
             EntityManager entityManager = VWorld.Server.EntityManager;
             if (counter == 0)
@@ -191,13 +197,7 @@ namespace VPlus.Hooks
                 string toSend = "You've earned " + colorString + " rank points!";
                 ServerChatUtils.SendSystemMessageToClient(entityManager, user, toSend);
                 counter = 0;
-                if (Databases.playerPrestige.TryGetValue(user.PlatformId, out PrestigeData prestigeData))
-                {
-                    int prestigeCount = prestigeData.Prestiges;
-                    double multiplier = Math.Pow(1.1, prestigeCount); // Calculate the multiplier based on the prestige level
-                    int newPoints = (int)(points * multiplier); // Calculate the total points gained
-                    return newPoints;
-                }
+                
                 
                 return points;
             }
