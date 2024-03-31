@@ -231,7 +231,8 @@ namespace VCreate.Systems
             //FactionReference factionReference = userEntity.Read<FactionReference>();
 
             Entity character = userEntity.Read<User>().LocalCharacter._Entity;
-
+            string name = userEntity.Read<User>().CharacterName.ToString();
+            string familiarName = name + "'s Familiar";
             Utilities.SetComponentData(familiar, new Team { Value = userTeam.Value, FactionIndex = userTeam.FactionIndex });
 
             ModifiableEntity modifiableEntity = ModifiableEntity.CreateFixed(character);
@@ -245,6 +246,37 @@ namespace VCreate.Systems
                 familiar.Write(bloodConsumeSource);
 
             }
+            if (Utilities.HasComponent<Interactable>(familiar))
+            {
+                familiar.Remove<Interactable>();
+            }
+            if (!Utilities.HasComponent<NameableInteractable>(familiar))
+            {
+                
+                NameableInteractable nameableInteractable = new NameableInteractable { OnlyAllyRename = true, OnlyAllySee = false, Name = familiarName };
+                Utilities.AddComponentData(familiar, nameableInteractable);
+            }
+            else
+            {
+                NameableInteractable nameableInteractable = familiar.Read<NameableInteractable>();
+                nameableInteractable.OnlyAllyRename = true;
+                nameableInteractable.OnlyAllySee = false;
+                nameableInteractable.Name = familiarName;
+                familiar.Write(nameableInteractable);
+            }
+
+            if (Utilities.HasComponent<Minion>(familiar))
+            {
+                familiar.LogComponentTypes();
+                if (Utilities.HasComponent<LifeTime>(familiar))
+                {
+                    LifeTime lifeTime = familiar.Read<LifeTime>();
+                    lifeTime.Duration = -1f;
+                    lifeTime.EndAction = LifeTimeEndAction.None;
+                    familiar.Write(lifeTime);
+                }
+                
+            }
             
             Utilities.SetComponentData(familiar, follower);
             Utilities.SetComponentData(familiar, teamReference);
@@ -252,7 +284,7 @@ namespace VCreate.Systems
             Utilities.AddComponentData(familiar, new FactionReference { FactionGuid = modifiablePrefabGUID });
 
             AggroConsumer aggroConsumer = familiar.Read<AggroConsumer>();
-            aggroConsumer.ProximityRadius = 15f;
+            aggroConsumer.ProximityRadius = 18f;
             aggroConsumer.MaxDistanceFromPreCombatPosition = 30f;
             aggroConsumer.RemoveDelay = 6f;
             familiar.Write(aggroConsumer);

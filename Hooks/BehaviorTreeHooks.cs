@@ -132,18 +132,15 @@ public static class BehaviourTreeStateChangedEventSystemPatch
                     behaviourTreeStateChangedEvent.Value = GenericEnemyState.Follow;
                     entity.Write(behaviourTreeStateChangedEvent);
                 }
-                /*
+                
                 else if (Utilities.HasComponent<BehaviourTreeState>(entity) && entity.Read<BehaviourTreeState>().Value == GenericEnemyState.Follow)
                 {
-                    var distance = UnityEngine.Vector3.Distance(entity.Read<Translation>().Value, entity.Read<Follower>().Followed._Value.Read<Translation>().Value);
-                    if (distance < 1f)
-                    {
-                        BehaviourTreeState behaviourTreeStateChangedEvent = entity.Read<BehaviourTreeState>();
-                        behaviourTreeStateChangedEvent.Value = GenericEnemyState.Idle;
-                        entity.Write(behaviourTreeStateChangedEvent);
-                    }
+                    AiMove_Server aiMoveServer = entity.Read<AiMove_Server>();
+                    aiMoveServer.MinDistance = 0.5f;
+                    aiMoveServer.MaxDistance = 1f;
+                    entity.Write(aiMoveServer);
                 }
-                */
+                
                 
             }
         }

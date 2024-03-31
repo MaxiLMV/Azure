@@ -159,7 +159,7 @@ namespace WorldBuild.Hooks
                 return (userEntity, _) =>
                 {
                     // change this to add specified component to hovered entity
-                    ServerChatUtils.SendSystemMessageToClient(VWorld.Server.EntityManager, userEntity.Read<User>(), "Deprecated for now.");
+                    OnHover.SpawnCopy(userEntity);
                 };
             }
             else if (settings.GetMode("DebuffToggle"))
