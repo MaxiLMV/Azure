@@ -54,11 +54,11 @@ public static class FollowerSystemPatchV2
                         if (DataStructures.PlayerSettings.TryGetValue(userEntity.Read<User>().PlatformId, out var dataset))
                         {
                             
-                            Plugin.Log.LogInfo($"entityFromQuery: {check}, setFamiliar: {dataset.Familiar} ");
+                            //Plugin.Log.LogInfo($"entityFromQuery: {check}, setFamiliar: {dataset.Familiar} ");
 
                             if (!dataset.Familiar.Equals(check) || !dataset.Binding)
                             {
-                                Plugin.Log.LogInfo("Failed set familiar check or no binding flag, returning.");
+                                //Plugin.Log.LogInfo("Failed set familiar check or no binding flag, returning.");
                                 dataset.Binding = false;
                                 //hashset.Add(entity);
                                 //goto outerLoop;

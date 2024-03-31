@@ -191,7 +191,7 @@ namespace VCreate.Hooks
                 }
                 else
                 {
-                    Plugin.Log.LogInfo("Giving pet experience...");
+                    //Plugin.Log.LogInfo("Giving pet experience...");
                     profiles[pet.Read<PrefabGUID>().LookupName().ToString()] = profile;
                     DataStructures.PlayerPetsMap[owner.Read<PlayerCharacter>().UserEntity.Read<User>().PlatformId] = profiles;
                     DataStructures.SavePetExperience();
@@ -428,8 +428,8 @@ namespace VCreate.Hooks
 
         public class UnitTokenSystem
         {
-            private static readonly float chance = 1f; // testing
-            private static readonly float vfactor = 1f; // DONT FORGET TO CHANGE THESE BACK, signed yourself
+            private static readonly float chance = 0.01f; // testing
+            private static readonly float vfactor = 3f; // DONT FORGET TO CHANGE THESE BACK, signed yourself
             public static readonly Random Random = new();
 
             public class UnitToGemMapping
@@ -466,6 +466,7 @@ namespace VCreate.Hooks
                 
                 if ((int)diedCategory.UnitCategory < 5 && !died.Read<PrefabGUID>().LookupName().ToLower().Contains("vblood"))
                 {
+                    if (died.Read<PrefabGUID>().LookupName().ToLower().Contains("unholy")) return;
                     gem = new(UnitToGemMapping.UnitCategoryToGemPrefab[(UnitToGemMapping.UnitType)diedCategory.UnitCategory]);
                     HandleRoll(gem, chance, died, killer);
                 }

@@ -18,6 +18,7 @@ using static VCreate.Hooks.PetSystem.UnitTokenSystem;
 using Unity.Transforms;
 using Unity.Collections;
 using static VCreate.Core.Toolbox.FontColors;
+using VRising.GameData.Utils;
 
 namespace VCreate.Core.Commands
 {
@@ -154,7 +155,7 @@ namespace VCreate.Core.Commands
             {
                 Entity unlocked = VWorld.Server.GetExistingSystem<PrefabCollectionSystem>()._PrefabGuidToEntityMap[new(settings.Familiar)];
                 EntityCategory unitCategory = unlocked.Read<EntityCategory>();
-                Plugin.Log.LogInfo(unitCategory.UnitCategory.ToString());
+                //Plugin.Log.LogInfo(unitCategory.UnitCategory.ToString());
                 PrefabGUID gem;
                 if (unlocked.Read<PrefabGUID>().LookupName().ToLower().Contains("vblood"))
                 {
@@ -189,7 +190,8 @@ namespace VCreate.Core.Commands
                 }
                 else
                 {
-                    ctx.Reply("Couldn't find perfect gem to bind to familiar type.");
+                    string colorString = FontColors.White(gem.GetPrefabName());
+                    ctx.Reply($"Couldn't find flawless gem to bind to familiar type. ({colorString})");
                 }
             }
             else

@@ -1,7 +1,10 @@
 ﻿using Bloodstone.API;
 using Il2CppSystem;
 using ProjectM;
+using ProjectM.Gameplay;
 using ProjectM.Network;
+using ProjectM.Tiles;
+using ProjectM.UI;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
@@ -232,7 +235,7 @@ namespace VCreate.Systems
 
             Entity character = userEntity.Read<User>().LocalCharacter._Entity;
             string name = userEntity.Read<User>().CharacterName.ToString();
-            string familiarName = name + "'s Familiar";
+            //string familiarName = name + "'s Familiar";
             Utilities.SetComponentData(familiar, new Team { Value = userTeam.Value, FactionIndex = userTeam.FactionIndex });
 
             ModifiableEntity modifiableEntity = ModifiableEntity.CreateFixed(character);
@@ -244,40 +247,36 @@ namespace VCreate.Systems
                 bloodConsumeSource.BloodQuality = 0f;
                 bloodConsumeSource.CanBeConsumed = false;
                 familiar.Write(bloodConsumeSource);
-
-            }
-            if (Utilities.HasComponent<Interactable>(familiar))
-            {
-                familiar.Remove<Interactable>();
-            }
-            if (!Utilities.HasComponent<NameableInteractable>(familiar))
-            {
-                
-                NameableInteractable nameableInteractable = new NameableInteractable { OnlyAllyRename = true, OnlyAllySee = false, Name = familiarName };
-                Utilities.AddComponentData(familiar, nameableInteractable);
-            }
-            else
-            {
-                NameableInteractable nameableInteractable = familiar.Read<NameableInteractable>();
-                nameableInteractable.OnlyAllyRename = true;
-                nameableInteractable.OnlyAllySee = false;
-                nameableInteractable.Name = familiarName;
-                familiar.Write(nameableInteractable);
-            }
-
-            if (Utilities.HasComponent<Minion>(familiar))
-            {
-                familiar.LogComponentTypes();
-                if (Utilities.HasComponent<LifeTime>(familiar))
-                {
-                    LifeTime lifeTime = familiar.Read<LifeTime>();
-                    lifeTime.Duration = -1f;
-                    lifeTime.EndAction = LifeTimeEndAction.None;
-                    familiar.Write(lifeTime);
-                }
-                
             }
             
+            if (Utilities.HasComponent<AttachedBuffer>(familiar))
+            {
+                var attached = familiar.ReadBuffer<AttachedBuffer>();
+                foreach (var buffer in attached)
+                {
+                    //buffer.Entity.LogComponentTypes();
+                    if (!buffer.Entity.Has<Buff>())
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        if (buffer.Entity.Read<PrefabGUID>().GuidHash == VCreate.Data.Buffs.Buff_InkCrawler_Timer.GuidHash)
+                        {
+                            LifeTime lifeTime = buffer.Entity.Read<LifeTime>();
+                            lifeTime.EndAction = LifeTimeEndAction.None;
+                            buffer.Entity.Write(lifeTime);
+                            if (Utilities.HasComponent<DropTableBuffer>(familiar))
+                            {
+                                var dropTableBuffer = familiar.ReadBuffer<DropTableBuffer>();
+                                dropTableBuffer.Clear();
+                               
+                            }
+                        }
+                    }
+                }
+            }
+
             Utilities.SetComponentData(familiar, follower);
             Utilities.SetComponentData(familiar, teamReference);
             ModifiablePrefabGUID modifiablePrefabGUID = ModifiablePrefabGUID.CreateFixed(VCreate.Data.Prefabs.Faction_Players);
@@ -289,12 +288,6 @@ namespace VCreate.Systems
             aggroConsumer.RemoveDelay = 6f;
             familiar.Write(aggroConsumer);
 
-            DynamicCollision dynamicCollision = familiar.Read<DynamicCollision>();
-            dynamicCollision.AgainstPlayers.RadiusOverride = -1f;
-            dynamicCollision.AgainstUnits.RadiusOverride = 0.4f;
-            familiar.Write(dynamicCollision);
-
-            
             
         }
 
@@ -325,7 +318,7 @@ namespace VCreate.Systems
                 }
                 if (flag)
                 {
-                    // current pet profile
+                    // current pet profile, buff handling would probably go here
                     data.TryGetValue(familiarFullName, out PetExperienceProfile profile);
 
                     profile.Active = true;
@@ -353,7 +346,7 @@ namespace VCreate.Systems
                 }
                 else
                 {
-                    // new pet profile
+                    // new pet profile would apply buff here if rolled
                     familiar.Write(new UnitLevel { Level = 0 });
 
                     Health healthUnit = familiar.Read<Health>();
@@ -371,16 +364,14 @@ namespace VCreate.Systems
                     unitStats.SpellCriticalStrikeDamage._Value = 1.5f;
                     unitStats.PassiveHealthRegen._Value = 0.01f;
 
-
                     familiar.Write(unitStats);
-                    
+
                     if (familiar.Has<DamageCategoryStats>())
                     {
                         DamageCategoryStats damageCategoryStats = familiar.Read<DamageCategoryStats>();
                         damageCategoryStats.DamageVsPlayerVampires._Value = 0.1f;
                         familiar.Write(damageCategoryStats);
                     }
-
 
                     PetExperienceProfile petExperience = new PetExperienceProfile
                     {

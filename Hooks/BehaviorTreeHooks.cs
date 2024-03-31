@@ -125,7 +125,7 @@ public static class BehaviourTreeStateChangedEventSystemPatch
                     }
                     
                 }
-                else if (Utilities.HasComponent<BehaviourTreeState>(entity) && (entity.Read<BehaviourTreeState>().Value == GenericEnemyState.Villager_Cover || entity.Read<BehaviourTreeState>().Value == GenericEnemyState.Flee))
+                else if (Utilities.HasComponent<BehaviourTreeState>(entity) && (entity.Read<BehaviourTreeState>().Value == GenericEnemyState.Flee))
                 {
                     
                     BehaviourTreeState behaviourTreeStateChangedEvent = entity.Read<BehaviourTreeState>();
@@ -133,13 +133,8 @@ public static class BehaviourTreeStateChangedEventSystemPatch
                     entity.Write(behaviourTreeStateChangedEvent);
                 }
                 
-                else if (Utilities.HasComponent<BehaviourTreeState>(entity) && entity.Read<BehaviourTreeState>().Value == GenericEnemyState.Follow)
-                {
-                    AiMove_Server aiMoveServer = entity.Read<AiMove_Server>();
-                    aiMoveServer.MinDistance = 0.5f;
-                    aiMoveServer.MaxDistance = 1f;
-                    entity.Write(aiMoveServer);
-                }
+                
+                
                 
                 
             }
