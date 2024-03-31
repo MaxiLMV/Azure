@@ -322,6 +322,42 @@ namespace VPlus.Core.Commands
             }
         }
 
+
+        [Command(name: "lockSpell", shortHand: "lock", adminOnly: false, usage: ".lock", description: "Locks in the next spells equipped to use in your extra unarmed slots. Use twice for two slots.")]
+        public static void LockPlayerSpells(ChatCommandContext ctx)
+        {
+            if (Plugin.PlayerRankUp == false)
+            {
+                ctx.Reply("PvE Rank is disabled.");
+                return;
+            }
+            var user = ctx.Event.User;
+            string name = user.CharacterName.ToString();
+            var SteamID = user.PlatformId;
+
+            if (Databases.playerRanks.TryGetValue(SteamID, out RankData data) && data.Rank > 0)
+            {
+                if (data.FishingPole)
+                {
+                    data.FishingPole = false;
+                    ChatCommands.SavePlayerRanks();
+
+                    ctx.Reply("Spells locked.");
+
+                }
+                else
+                {
+                    data.FishingPole = true;
+                    ChatCommands.SavePlayerRanks();
+                    ctx.Reply("Change spells to the ones you want in your unarmed slot. When done, toggle this again.");
+                }
+            }
+            else
+            {
+                ctx.Reply("You need to be at least rank 1 to use an extra spell slot. An additional slot is granted at rank 3.");
+            }
+        }
+
         [Command(name: "rankUp", shortHand: "rankup", adminOnly: false, usage: ".rankup", description: "Resets your rank points and increases your rank, granting any applicable rewards.")]
         public static void RankUpCommand(ChatCommandContext ctx)
         {
@@ -581,7 +617,10 @@ namespace VPlus.Core.Commands
             // Sorting by rank in ascending order and taking the top 10
             //var topRanks = allRanks.OrderBy(rankData => rankData.Rank).Take(10);
             // count rank as 1000 points per level, plus points for ease of ranking
-            var topRanks = allRanks.OrderByDescending(rankData => rankData.Rank * 1000 + rankData.Points).Take(10);
+            var topRanks = allRanks.OrderBy(rankData => rankData.Rank)
+                        .ThenByDescending(rankData => rankData.Points)
+                        .Take(10);
+
             StringBuilder replyMessage = new("Top 10 Players by Rank:\n");
             foreach (var rankInfo in topRanks)
             {

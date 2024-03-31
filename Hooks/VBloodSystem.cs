@@ -4,6 +4,8 @@ using ProjectM;
 using ProjectM.Network;
 using Unity.Entities;
 using Unity.Mathematics;
+using Unity.Physics.Authoring;
+using VPlus.Augments;
 using VPlus.Augments.Rank;
 using VPlus.Core;
 using VPlus.Core.Commands;
@@ -189,6 +191,14 @@ namespace VPlus.Hooks
                 string toSend = "You've earned " + colorString + " rank points!";
                 ServerChatUtils.SendSystemMessageToClient(entityManager, user, toSend);
                 counter = 0;
+                if (Databases.playerPrestige.TryGetValue(user.PlatformId, out PrestigeData prestigeData))
+                {
+                    int prestigeCount = prestigeData.Prestiges;
+                    double multiplier = Math.Pow(1.1, prestigeCount); // Calculate the multiplier based on the prestige level
+                    int newPoints = (int)(points * multiplier); // Calculate the total points gained
+                    return newPoints;
+                }
+                
                 return points;
             }
         }

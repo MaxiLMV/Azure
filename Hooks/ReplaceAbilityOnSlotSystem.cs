@@ -196,7 +196,7 @@ namespace VPlus.Hooks
 
             if (slotIndex != -1) // Proceed only if it's slot 5 or 6
             {
-                if (Databases.playerRanks.TryGetValue(steamID, out RankData data))
+                if (Databases.playerRanks.TryGetValue(steamID, out RankData data) && data.FishingPole) //only do this if player has set their flag to true, then reset flag
                 {
                     // Ensure Spells list is initialized and has at least 2 elements to accommodate both slots.
                     if (data.Spells == null)
@@ -214,12 +214,10 @@ namespace VPlus.Hooks
 
                     // Now safely assign value to the corresponding slot
                     data.Spells[slotIndex] = buffer[0].NewGroupId.GuidHash;
+                    //data.FishingPole = false; // Reset the flag
                     ChatCommands.SavePlayerRanks();
                 }
-                else
-                {
-                    Plugin.Logger.LogInfo("Player rank not found.");
-                }
+                
             }
         }
     }
