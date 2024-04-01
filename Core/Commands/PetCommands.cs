@@ -272,21 +272,37 @@ namespace VCreate.Core.Commands
         [Command(name: "enableFamiliar", shortHand: "call", usage: ".call", description: "Summons familar if found in stasis.", adminOnly: false)]
         public static void EnableFamiliar(ChatCommandContext ctx)
         {
+            EntityManager entityManager = VWorld.Server.EntityManager;
             ulong platformId = ctx.User.PlatformId;
             if (DataStructures.PlayerPetsMap.TryGetValue(platformId, out Dictionary<string, PetExperienceProfile> data))
             {
                 if (PlayerFamiliarStasisMap.TryGetValue(platformId, out FamiliarStasisState familiarStasisState) && familiarStasisState.IsInStasis)
                 {
-                    SystemPatchUtil.Enable(familiarStasisState.FamiliarEntity);
-                    Follower follower = familiarStasisState.FamiliarEntity.Read<Follower>();
-                    follower.Followed._Value = ctx.Event.SenderCharacterEntity;
-                    familiarStasisState.FamiliarEntity.Write(follower);
-                    familiarStasisState.FamiliarEntity.Write(new Translation { Value = ctx.Event.SenderCharacterEntity.Read<Translation>().Value });
-                    familiarStasisState.FamiliarEntity.Write(new LastTranslation { Value = ctx.Event.SenderCharacterEntity.Read<Translation>().Value });
-                    familiarStasisState.IsInStasis = false;
-                    familiarStasisState.FamiliarEntity = Entity.Null;
-                    PlayerFamiliarStasisMap[platformId] = familiarStasisState;
-                    ctx.Reply("Your familiar has been summoned.");
+
+                    if (entityManager.Exists(familiarStasisState.FamiliarEntity))
+                    {
+                        SystemPatchUtil.Enable(familiarStasisState.FamiliarEntity);
+
+                        Follower follower = familiarStasisState.FamiliarEntity.Read<Follower>();
+                        follower.Followed._Value = ctx.Event.SenderCharacterEntity;
+                        familiarStasisState.FamiliarEntity.Write(follower);
+                        familiarStasisState.FamiliarEntity.Write(new Translation { Value = ctx.Event.SenderCharacterEntity.Read<Translation>().Value });
+                        familiarStasisState.FamiliarEntity.Write(new LastTranslation { Value = ctx.Event.SenderCharacterEntity.Read<Translation>().Value });
+                        familiarStasisState.IsInStasis = false;
+                        familiarStasisState.FamiliarEntity = Entity.Null;
+                        PlayerFamiliarStasisMap[platformId] = familiarStasisState;
+                        ctx.Reply("Your familiar has been summoned.");
+                    }
+                    else
+                    {
+                        familiarStasisState.IsInStasis = false;
+                        familiarStasisState.FamiliarEntity = Entity.Null;
+                        PlayerFamiliarStasisMap[platformId] = familiarStasisState;
+                        ctx.Reply("Familiar entity in stasis couldn't be found to enable, you may now unbind.");
+                    }
+
+
+                    
                 }
                 else
                 {
