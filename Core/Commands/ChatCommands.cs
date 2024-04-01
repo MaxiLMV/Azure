@@ -616,10 +616,11 @@ namespace VPlus.Core.Commands
 
             // Sorting by rank in ascending order and taking the top 10
             //var topRanks = allRanks.OrderBy(rankData => rankData.Rank).Take(10);
-            // count rank as 1000 points per level, plus points for ease of ranking
-            var topRanks = allRanks.OrderBy(rankData => rankData.Rank)
+            var topRanks = allRanks.OrderByDescending(rankData => rankData.Rank)
                         .ThenByDescending(rankData => rankData.Points)
                         .Take(10);
+
+
 
             StringBuilder replyMessage = new("Top 10 Players by Rank:\n");
             foreach (var rankInfo in topRanks)
