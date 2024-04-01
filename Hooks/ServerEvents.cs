@@ -79,6 +79,7 @@ namespace VCreate.Hooks
         }
         public static void EnableFamiliarsOnQuit()
         {
+            EntityManager entityManager = VWorld.Server.EntityManager;
             var keys = DataStructures.PlayerPetsMap.Keys;
             
             foreach (var key in PetCommands.PlayerFamiliarStasisMap.Keys)
@@ -87,9 +88,19 @@ namespace VCreate.Hooks
                 {
                     if (data.IsInStasis)
                     {
-                        SystemPatchUtil.Enable(data.FamiliarEntity);
-                        data.IsInStasis = false;
-                        PetCommands.PlayerFamiliarStasisMap[key] = data;
+                        if (entityManager.Exists(data.FamiliarEntity))
+                        {
+                            SystemPatchUtil.Enable(data.FamiliarEntity);
+                            data.IsInStasis = false;
+                            PetCommands.PlayerFamiliarStasisMap[key] = data;
+                        }
+                        else
+                        {
+                            data.FamiliarEntity = Entity.Null;
+                            data.IsInStasis = false;
+                            PetCommands.PlayerFamiliarStasisMap[key] = data;
+                        }
+                        
                     }
                 }
             }

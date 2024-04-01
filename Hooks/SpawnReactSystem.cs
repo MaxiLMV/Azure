@@ -46,7 +46,7 @@ public static class FollowerSystemPatchV2
                         if (!followed.Has<PlayerCharacter>()) continue;
                         //if (DataStructures.PlayerSettings.TryGetValue(followed.Read<PlayerCharacter>().UserEntity.Read<User>().PlatformId, out var data) && !data.Binding) return;
                         
-                        Plugin.Log.LogInfo("Charmed entity following player detected in SpawnReactSystem, checking for valid familiar to bind...");
+                        //Plugin.Log.LogInfo("Charmed entity following player detected in SpawnReactSystem, checking for valid familiar to bind...");
                         
                         Entity userEntity = followed.Read<PlayerCharacter>().UserEntity;
 
