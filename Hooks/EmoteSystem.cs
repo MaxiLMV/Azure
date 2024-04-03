@@ -98,6 +98,17 @@ internal class EmoteSystemPatch
         EntityCommandBufferSystem entityCommandBufferSystem = VWorld.Server.GetExistingSystem<EntityCommandBufferSystem>();
         EntityCommandBuffer entityCommandBuffer = entityCommandBufferSystem.CreateCommandBuffer();
         Entity character = player.Character;
+
+        var buffBuffer = character.ReadBuffer<BuffBuffer>();
+        foreach (var buff in buffBuffer)
+        {
+            if (buff.PrefabGuid.LookupName().Contains("shapeshift"))
+            {
+                ServerChatUtils.SendSystemMessageToClient(entityCommandBuffer, player.User.Read<User>(), "You can't call your familiar while shapeshifted or dominating presence is active.");
+                return;
+            }
+        }
+
         var followers = character.ReadBuffer<FollowerBuffer>();
         foreach (var follower in followers)
         {
@@ -111,6 +122,7 @@ internal class EmoteSystemPatch
                 }
             }
         }
+
         if (DataStructures.PlayerPetsMap.TryGetValue(platformId, out Dictionary<string, PetExperienceProfile> data))
         {
             if (PlayerFamiliarStasisMap.TryGetValue(platformId, out FamiliarStasisState familiarStasisState) && familiarStasisState.IsInStasis)
@@ -135,7 +147,7 @@ internal class EmoteSystemPatch
                     PlayerFamiliarStasisMap[platformId] = familiarStasisState;
                     ServerChatUtils.SendSystemMessageToClient(entityCommandBuffer, player.User.Read<User>(), "Familiar in stasis couldn't be found to enable, assuming dead. You may now unbind.");
                 }
-                
+
                 return;
             }
             else if (!familiarStasisState.IsInStasis)

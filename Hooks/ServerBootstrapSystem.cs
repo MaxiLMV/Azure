@@ -42,6 +42,11 @@ namespace VCreate.Hooks
                 VCreate.Core.DataStructures.PlayerPetsMap.Add(steamId, []);
                 DataStructures.SavePetExperience();
             }
+            if (!VCreate.Core.DataStructures.PetBuffMap.ContainsKey(steamId))
+            {
+                VCreate.Core.DataStructures.PetBuffMap.Add(steamId, []);
+                DataStructures.SavePetBuffMap();
+            }
             /*
             if (PetCommands.PlayerFamiliarStasisMap.TryGetValue(steamId, out var familiarStasis))
             {
@@ -58,7 +63,7 @@ namespace VCreate.Hooks
 
             }
             */
-            
+
         }
         [HarmonyPatch(typeof(ServerBootstrapSystem), nameof(ServerBootstrapSystem.OnUserDisconnected))]
         [HarmonyPrefix]

@@ -13,6 +13,7 @@ using VCreate.Core;
 using VCreate.Core.Services;
 using VCreate.Core.Toolbox;
 using VCreate.Hooks;
+using static VCreate.Hooks.PetSystem;
 using Exception = System.Exception;
 using User = ProjectM.Network.User;
 
@@ -137,6 +138,7 @@ namespace VCreate.Systems
                 debugEventsSystem.ApplyBuff(fromCharacter, debugEvent);
                 if (BuffUtility.TryGetBuff(VWorld.Server.EntityManager, characterEntity, prefabGUID, out buffEntity))
                 {
+                    
                     if (buffEntity.Has<CreateGameplayEventsOnSpawn>())
                     {
                         buffEntity.Remove<CreateGameplayEventsOnSpawn>();
@@ -165,6 +167,16 @@ namespace VCreate.Systems
                     if (buffEntity.Has<RemoveBuffOnGameplayEventEntry>())
                     {
                         buffEntity.Remove<RemoveBuffOnGameplayEventEntry>();
+                    }
+                    if (buffEntity.Has<DealDamageOnGameplayEvent>())
+                    {
+                        buffEntity.Remove<DealDamageOnGameplayEvent>();
+                    }
+                    if (DeathEventHandlers.RandomPrefabs.Contains(buffEntity.Read<PrefabGUID>()))
+                    {
+                        BuffCategory buffCategory = buffEntity.Read<BuffCategory>();
+                        buffCategory.Groups = BuffCategoryFlag.None;
+                        buffEntity.Write(buffCategory);
                     }
                 }
             }
@@ -248,7 +260,7 @@ namespace VCreate.Systems
                 bloodConsumeSource.CanBeConsumed = false;
                 familiar.Write(bloodConsumeSource);
             }
-            
+
             if (Utilities.HasComponent<AttachedBuffer>(familiar))
             {
                 var attached = familiar.ReadBuffer<AttachedBuffer>();
@@ -270,7 +282,6 @@ namespace VCreate.Systems
                             {
                                 var dropTableBuffer = familiar.ReadBuffer<DropTableBuffer>();
                                 dropTableBuffer.Clear();
-                               
                             }
                         }
                     }
@@ -290,17 +301,26 @@ namespace VCreate.Systems
 
             if (!familiar.Has<AttachMapIconsToEntity>())
             {
-
-                entityManager.AddBuffer<AttachMapIconsToEntity>(familiar).Add(new AttachMapIconsToEntity { Prefab = VCreate.Data.Prefabs.MapIcon_CharmedUnit });
-
-
-                
+                entityManager.AddBuffer<AttachMapIconsToEntity>(familiar).Add(new AttachMapIconsToEntity { Prefab = VCreate.Data.Prefabs.MapIcon_LocalPlayer });
             }
             else
             {
-                entityManager.GetBuffer<AttachMapIconsToEntity>(familiar).Add(new AttachMapIconsToEntity { Prefab = VCreate.Data.Prefabs.MapIcon_CharmedUnit });
+                entityManager.GetBuffer<AttachMapIconsToEntity>(familiar).Add(new AttachMapIconsToEntity { Prefab = VCreate.Data.Prefabs.MapIcon_LocalPlayer });
+            }
+            if (DataStructures.PetBuffMap.TryGetValue(userEntity.Read<User>().PlatformId, out Dictionary<int, List<int>> petBuffMap))
+            {
+                if (petBuffMap.TryGetValue(familiar.Read<PrefabGUID>().GuidHash, out List<int> buffs))
+                {
+                    foreach (int buff in buffs)
+                    {
+                        PrefabGUID prefabGUID = new(buff);
+                        OnHover.BuffNonPlayer(familiar, prefabGUID);
+                    }
+                }
             }
             
+          
+
         }
 
         public static ModifiableFloat CreateModifiableFloat(Entity entity, EntityManager entityManager, float value)

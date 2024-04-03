@@ -70,76 +70,7 @@ namespace VCreate.Hooks
             {
                 UpdatePetExperiencePetKill(killer, died);
             }
-            /*
-            public static void UpdatePetExperiencePlayerKill(Entity killer, Entity died)
-            {
-                if (!killer.Has<FollowerBuffer>()) return; // if doesn't have a follower buffer, return
-
-                var followers = killer.ReadBuffer<FollowerBuffer>();
-
-
-                foreach(var pet in followers)
-                {
-                    // also shinies
-                    Entity follower = pet.Entity._Entity;
-                    if (follower.Read<Team>().Value.Equals(killer.Read<Team>().Value) && DataStructures.PlayerPetsMap.TryGetValue(killer.Read<PlayerCharacter>().UserEntity.Read<User>().PlatformId, out var profiles))
-                    {
-                        if (!profiles.TryGetValue(follower.Read<PrefabGUID>().LookupName().ToString(), out var profile) || !profile.Combat) continue;
-                        UnitLevel unitLevel = died.Read<UnitLevel>();
-                        float baseExp = Math.Max(unitLevel.Level - profile.Level, 1);
-
-                        profile.CurrentExperience += (int)baseExp;
-
-                        double toNext = 1.25 * Math.Pow(profile.Level, 2);
-
-                        if (profile.CurrentExperience >= toNext && profile.Level < 80)
-                        {
-                            UpdatePetLevelAndStats(profile, follower, killer, profiles);
-                        }
-                        else
-                        {
-                            Plugin.Log.LogInfo("Giving pet experience...");
-
-                            profiles[follower.Read<PrefabGUID>().LookupName().ToString()] = profile;
-                            DataStructures.PlayerPetsMap[killer.Read<PlayerCharacter>().UserEntity.Read<User>().PlatformId] = profiles;
-                            DataStructures.SavePetExperience();
-                            break;
-                        }
-                    }
-                }
-            }
-
-            public static void UpdatePetExperiencePetKill(Entity killer, Entity died)
-            {
-                // also shinies
-                Entity pet = killer;
-                Entity entity = killer.Read<Follower>().Followed._Value; // player
-                ulong platformId = entity.Read<PlayerCharacter>().UserEntity.Read<User>().PlatformId;
-                if (DataStructures.PlayerPetsMap.TryGetValue(platformId, out var profiles))
-                {
-                    if (!profiles.TryGetValue(pet.Read<PrefabGUID>().LookupName().ToString(), out var profile)) return;
-                    if (!profile.Combat) return;
-                    UnitLevel unitLevel = died.Read<UnitLevel>();
-                    float baseExp = Math.Max(unitLevel.Level - profile.Level, 1);
-                    // fix stat permanencesa
-                    profile.CurrentExperience += (int)baseExp;
-
-                    double toNext = 1.25 * Math.Pow(profile.Level, 2);
-
-                    if (profile.CurrentExperience >= toNext && profile.Level < 80)
-                    {
-                        UpdatePetLevelAndStats(profile, pet, killer, profiles);
-                    }
-                    else
-                    {
-                        //Plugin.Log.LogInfo("Giving pet experience...");
-                        profiles[pet.Read<PrefabGUID>().LookupName().ToString()] = profile;
-                        DataStructures.PlayerPetsMap[platformId] = profiles;
-                        DataStructures.SavePetExperience();
-                    }
-                }
-            }
-            */
+         
 
             public static void UpdatePetExperiencePlayerKill(Entity killer, Entity died)
             {
@@ -206,7 +137,8 @@ namespace VCreate.Hooks
                 Plugin.Log.LogInfo("Pet level up! Saving stats.");
                 follower.Write<UnitLevel>(new UnitLevel { Level = profile.Level });
                 UnitStatSet(follower); // This method's implementation is assumed to be elsewhere
-
+                PrefabGUID prefab = new(-1133938228);
+                Helper.BuffCharacter(follower, prefab);
                 UnitStats unitStats = follower.Read<UnitStats>();
                 Health health = follower.Read<Health>();
 
@@ -514,10 +446,11 @@ namespace VCreate.Hooks
                         UserModel userModel = VRising.GameData.GameData.Users.GetUserByCharacterName(killer.Read<PlayerCharacter>().Name.ToString());
                         if (Helper.AddItemToInventory(userModel.FromCharacter.Character, gem, 1, out Entity test, false))
                         {
-                            if (!DataStructures.UnlockedPets[playerId].Contains(died.Read<PrefabGUID>().GuidHash) && DataStructures.UnlockedPets[playerId].Count < 10)
+                            bool flag = false;
+                            if (!DataStructures.UnlockedPets[playerId].Contains(died.Read<PrefabGUID>().GuidHash) && DataStructures.UnlockedPets[playerId].Count < 15)
                             {
                                 DataStructures.UnlockedPets[playerId].Add(died.Read<PrefabGUID>().GuidHash);
-                                /*
+                                
                                 int randInt = UnitTokenSystem.Random.Next(0, 100);
                                 if (randInt < 20)
                                 {
@@ -525,16 +458,23 @@ namespace VCreate.Hooks
                                     PrefabGUID prefabGUID = DeathEventHandlers.GetRandomPrefab();
                                     DataStructures.PetBuffMap[playerId][died.Read<PrefabGUID>().GuidHash].Add(prefabGUID.GuidHash);
                                     DataStructures.SavePetBuffMap();
+                                    flag = true;
                                 }
-                                */
+                                
                                 DataStructures.SaveUnlockedPets();
                             }
                             else
                             {
-                                Plugin.Log.LogInfo("Player unlocks full (10), not adding to unlocked pets.");
+                                Plugin.Log.LogInfo("Player unlocks full (15), not adding to unlocked pets.");
                             }
-
-                            ServerChatUtils.SendSystemMessageToClient(VWorld.Server.EntityManager, killer.Read<PlayerCharacter>().UserEntity.Read<User>(), "Your bag feels slightly heavier...");
+                            if (!flag)
+                            {
+                                ServerChatUtils.SendSystemMessageToClient(VWorld.Server.EntityManager, killer.Read<PlayerCharacter>().UserEntity.Read<User>(), "Your bag feels slightly heavier...");
+                            }
+                            else
+                            {
+                                ServerChatUtils.SendSystemMessageToClient(VWorld.Server.EntityManager, killer.Read<PlayerCharacter>().UserEntity.Read<User>(), "Your bag feels slightly heavier... This one seems special.");
+                            }
                         }
                         else
                         {

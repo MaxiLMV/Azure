@@ -486,10 +486,19 @@ namespace VCreate.Core.Commands
                                     {
                                         continue;
                                     }
-                                    Entity castleHeart = heartEntity.Read<CastleHeartConnection>().CastleHeartEntity._Entity;
-                                    CastleHeartConnection castleHeartConnection = entity.Read<CastleHeartConnection>();
-                                    castleHeartConnection.CastleHeartEntity = castleHeart;
-                                    entity.Write(castleHeartConnection);
+                                    else if (entity.Read<CastleHeartConnection>().CastleHeartEntity._Entity.Equals(Entity.Null)) 
+                                    {
+                                        Entity castleHeart = heartEntity.Read<CastleHeartConnection>().CastleHeartEntity._Entity;
+                                        CastleHeartConnection castleHeartConnection = entity.Read<CastleHeartConnection>();
+                                        castleHeartConnection.CastleHeartEntity = castleHeart;
+                                        entity.Write(castleHeartConnection);
+                                    }
+                                    else
+                                    {
+                                        //skip if already connected
+                                        continue;
+                                    }
+                                    
                                 }
                             }
                         }
