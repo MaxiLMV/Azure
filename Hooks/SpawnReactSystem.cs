@@ -48,22 +48,24 @@ public static class FollowerSystemPatchV2
                         ulong steamId = userEntity.Read<User>().PlatformId;
                         if (DataStructures.PlayerSettings.TryGetValue(steamId, out var dataset))
                         {
-                            
-                            
-                            if (!dataset.Familiar.Equals(check) || !dataset.Binding)
+                            // CHECK THIS
+                            EntityCreator entityCreator = entity.Read<EntityCreator>();
+                            Entity creator = entityCreator.Creator._Entity;
+                            User user = creator.Read<User>();
+
+                            if (!dataset.Familiar.Equals(check) || !dataset.Binding || !user.PlatformId.Equals(steamId))
                             {
-                                //Plugin.Log.LogInfo("Failed set familiar check or no binding flag, returning.");
-                                dataset.Binding = false;
+                                //Plugin.Log.LogInfo("Failed set familiar check or no binding flag and not entity creator, returning.");
                                 continue;
                             }
                             else
                             {
                                 Plugin.Log.LogInfo("Found unbound/inactive, set familiar, removing charm and binding...");
+
                                 BuffUtility.TryRemoveBuff(ref buffSpawner, entityCommandBuffer, charm, entity);
                                 
                                 OnHover.ConvertCharacter(userEntity, entity);
-                                //hashset.Add(entity);
-                                //goto outerLoop;
+
                                 continue;
                             }
                             

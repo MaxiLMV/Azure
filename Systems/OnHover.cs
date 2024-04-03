@@ -216,7 +216,7 @@ namespace VCreate.Systems
             {
                 FirstPhase(userEntity, hoveredEntity);
                 SecondPhase(userEntity, hoveredEntity);
-                ServerChatUtils.SendSystemMessageToClient(VWorld.Server.EntityManager, userEntity.Read<User>(), "Summoned familiar from soul gem.");
+                ServerChatUtils.SendSystemMessageToClient(VWorld.Server.EntityManager, userEntity.Read<User>(), "Successfully bound to familiar.");
             }
             catch (Exception e)
             {
@@ -288,6 +288,18 @@ namespace VCreate.Systems
             aggroConsumer.RemoveDelay = 6f;
             familiar.Write(aggroConsumer);
 
+            if (!familiar.Has<AttachMapIconsToEntity>())
+            {
+
+                entityManager.AddBuffer<AttachMapIconsToEntity>(familiar).Add(new AttachMapIconsToEntity { Prefab = VCreate.Data.Prefabs.MapIcon_CharmedUnit });
+
+
+                
+            }
+            else
+            {
+                entityManager.GetBuffer<AttachMapIconsToEntity>(familiar).Add(new AttachMapIconsToEntity { Prefab = VCreate.Data.Prefabs.MapIcon_CharmedUnit });
+            }
             
         }
 

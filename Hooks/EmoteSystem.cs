@@ -97,6 +97,20 @@ internal class EmoteSystemPatch
         ulong platformId = playerId;
         EntityCommandBufferSystem entityCommandBufferSystem = VWorld.Server.GetExistingSystem<EntityCommandBufferSystem>();
         EntityCommandBuffer entityCommandBuffer = entityCommandBufferSystem.CreateCommandBuffer();
+        Entity character = player.Character;
+        var followers = character.ReadBuffer<FollowerBuffer>();
+        foreach (var follower in followers)
+        {
+            var buffs = follower.Entity._Entity.ReadBuffer<BuffBuffer>();
+            foreach (var buff in buffs)
+            {
+                if (buff.PrefabGuid.GuidHash == VCreate.Data.Prefabs.AB_Charm_Active_Human_Buff.GuidHash)
+                {
+                    ServerChatUtils.SendSystemMessageToClient(entityCommandBuffer, player.User.Read<User>(), "Looks like you have a charmed human. Take care of that before calling your familiar.");
+                    return;
+                }
+            }
+        }
         if (DataStructures.PlayerPetsMap.TryGetValue(platformId, out Dictionary<string, PetExperienceProfile> data))
         {
             if (PlayerFamiliarStasisMap.TryGetValue(platformId, out FamiliarStasisState familiarStasisState) && familiarStasisState.IsInStasis)
