@@ -667,7 +667,7 @@ namespace VPlus.Augments.Rank
                                 item.Slot = 3;
                                 abilities.Add(item);
 
-                                float cd = rankData.SpellRank * 12;
+                                float cd = rankData.SpellRank * 6;
                                 //Plugin.Logger.LogInfo($"Set ability.");
                                 try
                                 {
