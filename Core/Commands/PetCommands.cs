@@ -269,7 +269,7 @@ namespace VCreate.Core.Commands
             }
         }
 
-        [Command(name: "enableFamiliar", shortHand: "call", usage: ".call", description: "Summons familar if found in stasis.", adminOnly: false)]
+        //[Command(name: "enableFamiliar", shortHand: "call", usage: ".call", description: "Summons familar if found in stasis.", adminOnly: false)]
         public static void EnableFamiliar(ChatCommandContext ctx)
         {
             EntityManager entityManager = VWorld.Server.EntityManager;
@@ -315,7 +315,7 @@ namespace VCreate.Core.Commands
             }
         }
 
-        [Command(name: "disableFamiliar", shortHand: "dismiss", adminOnly: false, usage: ".dismiss", description: "Puts summoned familiar in stasis.")]
+        //[Command(name: "disableFamiliar", shortHand: "dismiss", adminOnly: false, usage: ".dismiss", description: "Puts summoned familiar in stasis.")]
         public static void MethodThree(ChatCommandContext ctx)
         {
             ulong platformId = ctx.User.PlatformId;
@@ -396,10 +396,10 @@ namespace VCreate.Core.Commands
                         string physicalpower = White(stats[3].ToString());
                         string spellpower = White(stats[4].ToString());
                         string physcritchance = White(stats[5].ToString());
-                        string physcritdamage = White(stats[6].ToString());
-                        string spellcritchance = White(stats[7].ToString());
+                        string spellcritchance = White(stats[6].ToString());
+                        string physcritdamage = White(stats[7].ToString());
                         string spellcritdamage = White(stats[8].ToString());
-                        ctx.Reply($"Max Health: {maxhealth}, Cast Speed: {attackspeed}, Primary Attack Speed: {primaryattackspeed}, Physical Power: {physicalpower}, Spell Power: {spellpower}, Physical Crit Chance: {physcritchance}, Physical Crit Damage: {physcritdamage}, Spell Crit Chance: {spellcritchance}, Spell Crit Damage: {spellcritdamage}");
+                        ctx.Reply($"Max Health: {maxhealth}, Cast Speed: {attackspeed}, Primary Attack Speed: {primaryattackspeed}, Physical Power: {physicalpower}, Spell Power: {spellpower}, Physical Crit Chance: {physcritchance}, Spell Crit Chance: {spellcritchance}, Phys Crit Damage: {physcritdamage}, Spell Crit Damage: {spellcritdamage}");
                         return;
                     }
                 }

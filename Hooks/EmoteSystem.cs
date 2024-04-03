@@ -90,6 +90,7 @@ internal class EmoteSystemPatch
         _entities.Dispose();
     }
 
+    [Command(name: "toggleFamiliar", shortHand: "toggle", usage: ".toggle", description: "Calls or dismisses familar.", adminOnly: false)]
     private static void CallDismiss(Player player, ulong playerId)
     {
         EntityManager entityManager = VWorld.Server.EntityManager;
