@@ -31,11 +31,8 @@ public static class FollowerSystemPatchV2
         NativeArray<Entity> entities = __instance.__OnUpdate_LambdaJob0_entityQuery.ToEntityArray(Unity.Collections.Allocator.Temp);
         try
         {
-        //outerLoop:
             foreach (Entity entity in entities)
             {
-                //Plugin.Log.LogInfo($"{entities.m_Length}");
-                //if (hashset.Contains(entity)) continue;
                 var buffer = entity.ReadBuffer<BuffBuffer>();
                 foreach (var buff in buffer)
                 {
@@ -44,24 +41,21 @@ public static class FollowerSystemPatchV2
                         Follower follower = entity.Read<Follower>();
                         Entity followed = follower.Followed._Value;
                         if (!followed.Has<PlayerCharacter>()) continue;
-                        //if (DataStructures.PlayerSettings.TryGetValue(followed.Read<PlayerCharacter>().UserEntity.Read<User>().PlatformId, out var data) && !data.Binding) return;
-                        
-                        //Plugin.Log.LogInfo("Charmed entity following player detected in SpawnReactSystem, checking for valid familiar to bind...");
                         
                         Entity userEntity = followed.Read<PlayerCharacter>().UserEntity;
 
                         int check = entity.Read<PrefabGUID>().GuidHash;
-                        if (DataStructures.PlayerSettings.TryGetValue(userEntity.Read<User>().PlatformId, out var dataset))
+                        ulong steamId = userEntity.Read<User>().PlatformId;
+                        if (DataStructures.PlayerSettings.TryGetValue(steamId, out var dataset))
                         {
+                            EntityCreator entityCreator = entity.Read<EntityCreator>();
+                            Entity player = entityCreator.Creator._Entity;
+                            ulong platformId = player.Read<PlayerCharacter>().UserEntity.Read<User>().PlatformId;
                             
-                            //Plugin.Log.LogInfo($"entityFromQuery: {check}, setFamiliar: {dataset.Familiar} ");
-
-                            if (!dataset.Familiar.Equals(check) || !dataset.Binding)
+                            if (!dataset.Familiar.Equals(check) || !dataset.Binding || !steamId.Equals(platformId))
                             {
                                 //Plugin.Log.LogInfo("Failed set familiar check or no binding flag, returning.");
                                 dataset.Binding = false;
-                                //hashset.Add(entity);
-                                //goto outerLoop;
                                 continue;
                             }
                             else
