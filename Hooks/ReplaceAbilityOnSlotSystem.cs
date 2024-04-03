@@ -116,7 +116,7 @@ namespace VPlus.Hooks
 
                 newItem.Slot = 3;
                 buffer.Add(newItem);
-                float cooldown =  data.SpellRank * 28;
+                float cooldown =  data.SpellRank * 12;
                 try
                 {
                     Entity abilityEntity = Helper.prefabCollectionSystem._PrefabGuidToEntityMap[prefabGUID];
