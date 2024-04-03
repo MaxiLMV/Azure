@@ -411,10 +411,10 @@ namespace VPlus.Augments.Rank
                 }
             }
         }
+
         [Command(name: "listClasses", shortHand: "classes", adminOnly: false, usage: ".classes", description: "Lists classes available through ranking.")]
         public static void ListClasses(ChatCommandContext ctx)
         {
-
             ctx.Reply("Classes available: Berserker, Pyromancer, BladeDancer, VampireLord, HolyRevenant, Gunslinger, Inquisitor, PlagueShaman, ThunderLord, VoidKnight, EarthWarden, FrostScion.");
         }
 
@@ -430,7 +430,7 @@ namespace VPlus.Augments.Rank
                 {
                     rankData.RankSpell = 0;
                     ChatCommands.SavePlayerRanks();
-                    ctx.Reply("Rank spell removed.");
+                    ctx.Reply("Rank spell removed. This won't apply until you swap weapons.");
                     return;
                 }
                 if (DateTime.UtcNow - rankData.LastAbilityUse < TimeSpan.FromSeconds(30))
@@ -661,7 +661,7 @@ namespace VPlus.Augments.Rank
                             {
                                 //Plugin.Logger.LogInfo("Found equipbuff_weapon...");
                                 var abilities = entityManager.GetBuffer<ReplaceAbilityOnSlotBuff>(buff.Entity);
-                                buff.Entity.LogComponentTypes();
+                                //buff.Entity.LogComponentTypes();
                                 var item = abilities[2];
                                 item.NewGroupId = new(rankData.RankSpell);
                                 item.Slot = 3;
@@ -695,9 +695,6 @@ namespace VPlus.Augments.Rank
                                     Plugin.Logger.LogInfo($"Error: {ex.Message}");
                                     break;
                                 }
-
-
-
                             }
                             else
                             {
@@ -710,7 +707,6 @@ namespace VPlus.Augments.Rank
                         //ctx.Reply($"Error: {e.Message}");
                     }
                 }
-
             }
             else
             {
