@@ -107,12 +107,16 @@ namespace VPlus.Hooks
 
             if (Databases.playerRanks.TryGetValue(user.PlatformId, out RankData data) && data.RankSpell != 0)
             {
+                if (DateTime.UtcNow - data.LastAbilityUse < TimeSpan.FromSeconds(data.SpellRank * 12))
+                {
+                    return;
+                }
                 PrefabGUID prefabGUID = new PrefabGUID(data.RankSpell);
                 newItem.NewGroupId = prefabGUID;
 
                 newItem.Slot = 3;
                 buffer.Add(newItem);
-                float cooldown =  data.SpellRank * 14;
+                float cooldown =  data.SpellRank * 28;
                 try
                 {
                     Entity abilityEntity = Helper.prefabCollectionSystem._PrefabGuidToEntityMap[prefabGUID];

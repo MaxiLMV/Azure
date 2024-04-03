@@ -433,9 +433,9 @@ namespace VPlus.Augments.Rank
                     ctx.Reply("Rank spell removed. This won't apply until you swap weapons.");
                     return;
                 }
-                if (DateTime.UtcNow - rankData.LastAbilityUse < TimeSpan.FromSeconds(30))
+                if (DateTime.UtcNow - rankData.LastAbilityUse < TimeSpan.FromSeconds(rankData.SpellRank*12))
                 {
-                    ctx.Reply("You must wait 30s before changing abilities.");
+                    ctx.Reply($"You must wait {rankData.SpellRank*12}s before changing abilities.");
                     return;
                 }
                 var classInstance = ClassFactory.CreateClassInstance(rankData.ClassChoice);
@@ -667,7 +667,7 @@ namespace VPlus.Augments.Rank
                                 item.Slot = 3;
                                 abilities.Add(item);
 
-                                float cd = rankData.SpellRank * 14;
+                                float cd = rankData.SpellRank * 28;
                                 //Plugin.Logger.LogInfo($"Set ability.");
                                 try
                                 {
