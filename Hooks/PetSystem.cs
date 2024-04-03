@@ -539,7 +539,7 @@ namespace VCreate.Hooks
                         else
                         {
                             userModel.DropItemNearby(gem, 1);
-                            if (!DataStructures.UnlockedPets[playerId].Contains(died.Read<PrefabGUID>().GuidHash) && DataStructures.UnlockedPets[playerId].Count < 10)
+                            if (!DataStructures.UnlockedPets[playerId].Contains(died.Read<PrefabGUID>().GuidHash) && DataStructures.UnlockedPets[playerId].Count < 15)
                             {
                                 DataStructures.UnlockedPets[playerId].Add(died.Read<PrefabGUID>().GuidHash);
                                 /*
@@ -556,7 +556,7 @@ namespace VCreate.Hooks
                             }
                             else
                             {
-                                Plugin.Log.LogInfo("Player unlocks full (10), not adding to unlocked pets.");
+                                Plugin.Log.LogInfo("Player unlocks full (15), not adding to unlocked pets.");
                             }
                             ServerChatUtils.SendSystemMessageToClient(VWorld.Server.EntityManager, killer.Read<PlayerCharacter>().UserEntity.Read<User>(), "Something fell out of your bag!");
                         }

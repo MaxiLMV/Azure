@@ -48,11 +48,9 @@ public static class FollowerSystemPatchV2
                         ulong steamId = userEntity.Read<User>().PlatformId;
                         if (DataStructures.PlayerSettings.TryGetValue(steamId, out var dataset))
                         {
-                            EntityCreator entityCreator = entity.Read<EntityCreator>();
-                            Entity player = entityCreator.Creator._Entity;
-                            ulong platformId = player.Read<PlayerCharacter>().UserEntity.Read<User>().PlatformId;
                             
-                            if (!dataset.Familiar.Equals(check) || !dataset.Binding || !steamId.Equals(platformId))
+                            
+                            if (!dataset.Familiar.Equals(check) || !dataset.Binding)
                             {
                                 //Plugin.Log.LogInfo("Failed set familiar check or no binding flag, returning.");
                                 dataset.Binding = false;
