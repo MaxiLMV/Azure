@@ -51,9 +51,9 @@ public static class FollowerSystemPatchV2
                             // CHECK THIS
                             EntityCreator entityCreator = entity.Read<EntityCreator>();
                             Entity creator = entityCreator.Creator._Entity;
-                            User user = creator.Read<User>();
-
-                            if (!dataset.Familiar.Equals(check) || !dataset.Binding || !user.PlatformId.Equals(steamId))
+                            //User user = creator.Read<User>();
+                            creator.LogComponentTypes();
+                            if (!dataset.Familiar.Equals(check) || !dataset.Binding)
                             {
                                 //Plugin.Log.LogInfo("Failed set familiar check or no binding flag and not entity creator, returning.");
                                 continue;
