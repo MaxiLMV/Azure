@@ -23,7 +23,7 @@ namespace VCreate.Core
 
         private static Dictionary<ulong, List<int>> unlockedPets = [];
 
-        private static Dictionary<ulong, Dictionary<int, List<int>>> petBuffMap = [];
+        private static Dictionary<ulong, Dictionary<int, Dictionary<string, HashSet<int>>>> petBuffMap = [];
 
         // Property for playerSettings if external access or modification is required
         public static Dictionary<ulong, Omnitool> PlayerSettings
@@ -41,7 +41,7 @@ namespace VCreate.Core
             get => unlockedPets;
             set => unlockedPets = value;
         }
-        public static Dictionary<ulong, Dictionary<int, List<int>>> PetBuffMap
+        public static Dictionary<ulong, Dictionary<int, Dictionary<string, HashSet<int>>>> PetBuffMap
         {
             get => petBuffMap;
             set => petBuffMap = value;

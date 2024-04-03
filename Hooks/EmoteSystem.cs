@@ -102,7 +102,7 @@ internal class EmoteSystemPatch
         var buffBuffer = character.ReadBuffer<BuffBuffer>();
         foreach (var buff in buffBuffer)
         {
-            if (buff.PrefabGuid.LookupName().Contains("shapeshift"))
+            if (buff.PrefabGuid.LookupName().ToLower().Contains("shapeshift"))
             {
                 ServerChatUtils.SendSystemMessageToClient(entityCommandBuffer, player.User.Read<User>(), "You can't call your familiar while shapeshifted or dominating presence is active.");
                 return;

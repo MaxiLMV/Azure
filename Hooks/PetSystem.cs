@@ -14,6 +14,7 @@ using VRising.GameData.Methods;
 using VRising.GameData.Models;
 using static ProjectM.VoiceMapping;
 using static VCreate.Hooks.PetSystem.PetFocusSystem;
+using static VCreate.Hooks.PetSystem.UnitTokenSystem.UnitToGemMapping;
 using Random = System.Random;
 
 namespace VCreate.Hooks
@@ -166,7 +167,7 @@ namespace VCreate.Hooks
 
 
 
-            public static readonly PrefabGUID[] RandomPrefabs =
+            public static readonly PrefabGUID[] RandomVisuals =
             [
                 //new PrefabGUID(-646796985),   // BloodBuff_Assault
                 //new PrefabGUID(1536493953),    // BloodBuff_CriticalStrike
@@ -182,10 +183,28 @@ namespace VCreate.Hooks
                 // Add more prefabs as needed
             ];
 
+            public static readonly Dictionary<string, int> BuffNameToGuidMap = new()
+                {
+                    { "SpellPowerBonus", -1591827622 }, // scholar spell power bonus
+                    { "PhysicalPowerBonus", -1591883586 }, // scholar physical power bonus
+                    { "AttackSpeedBonus", -1515928707 }, // scholar attack speed bonus
+                    //{ "DamageReduction", 1006510207 } // scholar crit chance bonus
+                    
+                 
+                };
+            public static readonly Dictionary<int, string> BuffChoiceToNameMap = new()
+                {
+                    { 1, "SpellPowerBonus"}, // scholar spell power bonus
+                    { 2, "PhysicalPowerBonus" }, // scholar physical power bonus
+                    { 3, "AttackSpeedBonus" }, // scholar attack speed bonus
+                    //{ 4, "DamageReduction"} // scholar crit chance bonus
+                   
+                 
+                };
             public static PrefabGUID GetRandomPrefab()
             {
                 Random random = UnitTokenSystem.Random;
-                return RandomPrefabs[random.Next(RandomPrefabs.Length)];
+                return RandomVisuals[random.Next(RandomVisuals.Length)];
             }
 
             public class StatCaps
@@ -360,7 +379,7 @@ namespace VCreate.Hooks
 
         public class UnitTokenSystem
         {
-            private static readonly float chance = 0.01f; // testing
+            private static readonly float chance = 1f; // testing
             private static readonly float vfactor = 3f; // DONT FORGET TO CHANGE THESE BACK, signed yourself
             public static readonly Random Random = new();
 
@@ -398,7 +417,7 @@ namespace VCreate.Hooks
                 
                 if ((int)diedCategory.UnitCategory < 5 && !died.Read<PrefabGUID>().LookupName().ToLower().Contains("vblood"))
                 {
-                    if (died.Read<PrefabGUID>().LookupName().ToLower().Contains("unholy")) return;
+                    if (died.Read<PrefabGUID>().LookupName().ToLower().Contains("unholy") || died.Read<PrefabGUID>().LookupName().ToLower().Contains("trader")) return;
                     gem = new(UnitToGemMapping.UnitCategoryToGemPrefab[(UnitToGemMapping.UnitType)diedCategory.UnitCategory]);
                     HandleRoll(gem, chance, died, killer);
                 }
@@ -455,26 +474,30 @@ namespace VCreate.Hooks
                                 if (randInt < 20)
                                 {
                                     DataStructures.PetBuffMap[playerId].Add(died.Read<PrefabGUID>().GuidHash, []);
+
                                     PrefabGUID prefabGUID = DeathEventHandlers.GetRandomPrefab();
-                                    DataStructures.PetBuffMap[playerId][died.Read<PrefabGUID>().GuidHash].Add(prefabGUID.GuidHash);
+                                    HashSet<int> visuals = [];
+                                    visuals.Add(prefabGUID.GuidHash);
+                                    DataStructures.PetBuffMap[playerId][died.Read<PrefabGUID>().GuidHash].Add("Shiny", visuals);
                                     DataStructures.SavePetBuffMap();
                                     flag = true;
                                 }
                                 
                                 DataStructures.SaveUnlockedPets();
+                                if (!flag)
+                                {
+                                    ServerChatUtils.SendSystemMessageToClient(VWorld.Server.EntityManager, killer.Read<PlayerCharacter>().UserEntity.Read<User>(), "Your bag feels slightly heavier...");
+                                }
+                                else
+                                {
+                                    ServerChatUtils.SendSystemMessageToClient(VWorld.Server.EntityManager, killer.Read<PlayerCharacter>().UserEntity.Read<User>(), "Your bag feels slightly heavier... This one seems special.");
+                                }
                             }
                             else
                             {
                                 Plugin.Log.LogInfo("Player unlocks full (15), not adding to unlocked pets.");
                             }
-                            if (!flag)
-                            {
-                                ServerChatUtils.SendSystemMessageToClient(VWorld.Server.EntityManager, killer.Read<PlayerCharacter>().UserEntity.Read<User>(), "Your bag feels slightly heavier...");
-                            }
-                            else
-                            {
-                                ServerChatUtils.SendSystemMessageToClient(VWorld.Server.EntityManager, killer.Read<PlayerCharacter>().UserEntity.Read<User>(), "Your bag feels slightly heavier... This one seems special.");
-                            }
+                            
                         }
                         else
                         {

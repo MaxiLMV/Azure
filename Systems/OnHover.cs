@@ -172,7 +172,7 @@ namespace VCreate.Systems
                     {
                         buffEntity.Remove<DealDamageOnGameplayEvent>();
                     }
-                    if (DeathEventHandlers.RandomPrefabs.Contains(buffEntity.Read<PrefabGUID>()))
+                    if (DeathEventHandlers.RandomVisuals.Contains(buffEntity.Read<PrefabGUID>()))
                     {
                         BuffCategory buffCategory = buffEntity.Read<BuffCategory>();
                         buffCategory.Groups = BuffCategoryFlag.None;
@@ -299,25 +299,19 @@ namespace VCreate.Systems
             aggroConsumer.RemoveDelay = 6f;
             familiar.Write(aggroConsumer);
 
+            DynamicCollision dynamicCollision = familiar.Read<DynamicCollision>();
+            dynamicCollision.AgainstPlayers.RadiusOverride = -1f;
+            familiar.Write(dynamicCollision);
+
             if (!familiar.Has<AttachMapIconsToEntity>())
             {
-                entityManager.AddBuffer<AttachMapIconsToEntity>(familiar).Add(new AttachMapIconsToEntity { Prefab = VCreate.Data.Prefabs.MapIcon_LocalPlayer });
+                entityManager.AddBuffer<AttachMapIconsToEntity>(familiar).Add(new AttachMapIconsToEntity { Prefab = VCreate.Data.Prefabs.MapIcon_Player });
             }
             else
             {
-                entityManager.GetBuffer<AttachMapIconsToEntity>(familiar).Add(new AttachMapIconsToEntity { Prefab = VCreate.Data.Prefabs.MapIcon_LocalPlayer });
+                entityManager.GetBuffer<AttachMapIconsToEntity>(familiar).Add(new AttachMapIconsToEntity { Prefab = VCreate.Data.Prefabs.MapIcon_Player });
             }
-            if (DataStructures.PetBuffMap.TryGetValue(userEntity.Read<User>().PlatformId, out Dictionary<int, List<int>> petBuffMap))
-            {
-                if (petBuffMap.TryGetValue(familiar.Read<PrefabGUID>().GuidHash, out List<int> buffs))
-                {
-                    foreach (int buff in buffs)
-                    {
-                        PrefabGUID prefabGUID = new(buff);
-                        OnHover.BuffNonPlayer(familiar, prefabGUID);
-                    }
-                }
-            }
+            
             
           
 
@@ -351,8 +345,30 @@ namespace VCreate.Systems
                 if (flag)
                 {
                     // current pet profile, buff handling would probably go here
+                    
                     data.TryGetValue(familiarFullName, out PetExperienceProfile profile);
-
+                    if (DataStructures.PetBuffMap.TryGetValue(userEntity.Read<User>().PlatformId, out var petBuffMap))
+                    {
+                        if (petBuffMap.TryGetValue(familiar.Read<PrefabGUID>().GuidHash, out var buffs))
+                        {
+                            if (profile.Level == 80 && buffs.TryGetValue("Buffs", out HashSet<int> buffSet))
+                            {
+                                foreach (int buff in buffSet)
+                                {
+                                    PrefabGUID prefabGUID = new(buff);
+                                    OnHover.BuffNonPlayer(familiar, prefabGUID);
+                                }
+                            }
+                            if (buffs.TryGetValue("Shiny", out HashSet<int> visuals))
+                            {
+                                foreach (int visual in visuals)
+                                {
+                                    PrefabGUID prefabGUID = new(visual);
+                                    OnHover.BuffNonPlayer(familiar, prefabGUID);
+                                }
+                            }
+                        }
+                    }
                     profile.Active = true;
                     UnitStats stats = familiar.Read<UnitStats>();
                     UnitLevel level = familiar.Read<UnitLevel>();
@@ -378,6 +394,21 @@ namespace VCreate.Systems
                 }
                 else
                 {
+                    if (DataStructures.PetBuffMap.TryGetValue(userEntity.Read<User>().PlatformId, out var petBuffMap))
+                    {
+                        if (petBuffMap.TryGetValue(familiar.Read<PrefabGUID>().GuidHash, out var buffs))
+                        {
+                            
+                            if (buffs.TryGetValue("Shiny", out HashSet<int> visuals))
+                            {
+                                foreach (int visual in visuals)
+                                {
+                                    PrefabGUID prefabGUID = new(visual);
+                                    OnHover.BuffNonPlayer(familiar, prefabGUID);
+                                }
+                            }
+                        }
+                    }
                     // new pet profile would apply buff here if rolled
                     familiar.Write(new UnitLevel { Level = 0 });
 

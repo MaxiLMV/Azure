@@ -168,7 +168,7 @@ namespace VCreate.Core
             Plugin.Logger.LogWarning($"PetBuffMap found: {json}");
             try
             {
-                var settings = JsonSerializer.Deserialize<Dictionary<ulong, Dictionary<int, List<int>>>>(json);
+                var settings = JsonSerializer.Deserialize<Dictionary<ulong, Dictionary<int, Dictionary<string, HashSet<int>>>>>(json);
                 VCreate.Core.DataStructures.PetBuffMap = settings ?? [];
                 Plugin.Logger.LogWarning("PetBuffMap Populated");
             }

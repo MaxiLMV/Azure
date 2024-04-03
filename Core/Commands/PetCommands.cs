@@ -19,6 +19,8 @@ using Unity.Transforms;
 using Unity.Collections;
 using static VCreate.Core.Toolbox.FontColors;
 using VRising.GameData.Utils;
+using Epic.OnlineServices.Stats;
+using UnityEngine.TextCore;
 
 namespace VCreate.Core.Commands
 {
@@ -55,6 +57,64 @@ namespace VCreate.Core.Commands
             else
             {
                 ctx.Reply("You don't have any unlocked familiars yet.");
+            }
+        }
+
+        [Command(name: "chooseMaxBuff", shortHand: "max", adminOnly: false, usage: ".max [#]", description: "Chooses buff for familiar to receieve when summoned if at level 80.")]
+        public static void ChooseMaxBuff(ChatCommandContext ctx, int choice)
+        {
+            ulong platformId = ctx.User.PlatformId;
+            var buffs = VCreate.Hooks.PetSystem.DeathEventHandlers.BuffChoiceToNameMap;
+            if (choice < 1 || choice > buffs.Count)
+            {
+                ctx.Reply($"Invalid choice, please use 1 to {buffs.Count}.");
+                return;
+            }
+            var toSet = buffs[choice];
+            var map = VCreate.Hooks.PetSystem.DeathEventHandlers.BuffNameToGuidMap;
+            if (DataStructures.PlayerPetsMap.TryGetValue(platformId, out Dictionary<string, PetExperienceProfile> data))
+            {
+                Entity familiar = FindPlayerFamiliar(ctx.Event.SenderCharacterEntity);
+                if (familiar.Equals(Entity.Null))
+                {
+                    ctx.Reply("Make sure your familiar is called before setting this.");
+                }
+                if (data.TryGetValue(familiar.Read<PrefabGUID>().LookupName().ToString(), out PetExperienceProfile profile) && profile.Active)
+                {
+                    if (DataStructures.PetBuffMap[platformId].TryGetValue(familiar.Read<PrefabGUID>().GuidHash, out var buffData))
+                    {
+                        if (buffData.ContainsKey("Buffs"))
+                        {
+                            buffData["Buffs"].Clear();
+                            buffData["Buffs"].Add(map[toSet]);
+                            DataStructures.SavePetBuffMap();
+                            ctx.Reply($"Max buff set to {toSet}.");
+                        }
+                        else
+                        {
+                            HashSet<int> newInts = [];
+                            newInts.Add(map[toSet]);
+                            buffData.Add("Buffs", newInts);
+                            DataStructures.SavePetBuffMap();
+                            ctx.Reply($"Max buff set to {toSet}.");
+                        }
+                    }
+                    else
+                    {
+                        Dictionary<string, HashSet<int>> newDict = new();
+                        HashSet<int> newInts = [];
+                        newInts.Add(map[toSet]);
+                        newDict.Add("Buffs", newInts);
+                        DataStructures.PetBuffMap[platformId].Add(familiar.Read<PrefabGUID>().GuidHash, newDict);
+                        DataStructures.SavePetBuffMap();
+                        ctx.Reply($"Max buff set to {toSet}.");
+                    
+                    }
+                }
+                else
+                {
+                    ctx.Reply("You don't have an active familiar.");
+                }
             }
         }
 
@@ -130,12 +190,39 @@ namespace VCreate.Core.Commands
         [Command(name: "bindFamiliar", shortHand: "bind", adminOnly: false, usage: ".bind", description: "Binds familiar from first soulgem found in inventory and sets profile to active.")]
         public static void MethodOne(ChatCommandContext ctx)
         {
+            EntityManager entityManager = VWorld.Server.EntityManager;
             ulong platformId = ctx.User.PlatformId;
+            
             // verify states before proceeding, make sure no active profiles and no familiars in stasis
+            Entity character = ctx.Event.SenderCharacterEntity;
+            var buffBuffer = character.ReadBuffer<BuffBuffer>();
+            foreach (var buff in buffBuffer)
+            {
+                if (buff.PrefabGuid.LookupName().Contains("shapeshift"))
+                {
+                    ctx.Reply("You can't bind to a familiar while shapeshifted or dominating presence is active.");
+                    return;
+                }
+            }
+
+            var followers = character.ReadBuffer<FollowerBuffer>();
+            foreach (var follower in followers)
+            {
+                var buffs = follower.Entity._Entity.ReadBuffer<BuffBuffer>();
+                foreach (var buff in buffs)
+                {
+                    if (buff.PrefabGuid.GuidHash == VCreate.Data.Prefabs.AB_Charm_Active_Human_Buff.GuidHash)
+                    {
+                        ctx.Reply("Looks like you have a charmed human. Take care of that before binding to a familiar.");
+                        return;
+                    }
+                }
+            }
+
             if (DataStructures.PlayerPetsMap.TryGetValue(platformId, out var data))
             {
                 var profiles = data.Values;
-                
+
                 foreach (var profile in profiles)
                 {
                     if (profile.Active)
@@ -278,7 +365,6 @@ namespace VCreate.Core.Commands
             {
                 if (PlayerFamiliarStasisMap.TryGetValue(platformId, out FamiliarStasisState familiarStasisState) && familiarStasisState.IsInStasis)
                 {
-
                     if (entityManager.Exists(familiarStasisState.FamiliarEntity))
                     {
                         SystemPatchUtil.Enable(familiarStasisState.FamiliarEntity);
@@ -300,9 +386,6 @@ namespace VCreate.Core.Commands
                         PlayerFamiliarStasisMap[platformId] = familiarStasisState;
                         ctx.Reply("Familiar entity in stasis couldn't be found to enable, you may now unbind.");
                     }
-
-
-                    
                 }
                 else
                 {
@@ -378,7 +461,6 @@ namespace VCreate.Core.Commands
         }
 
         [Command(name: "listStats", shortHand: "stats", adminOnly: false, usage: ".stats", description: "Lists stats of active familiar.")]
-
         public static void ListFamStats(ChatCommandContext ctx)
         {
             ulong platformId = ctx.User.PlatformId;
@@ -396,17 +478,17 @@ namespace VCreate.Core.Commands
                         string physicalpower = White(stats[3].ToString());
                         string spellpower = White(stats[4].ToString());
                         string physcritchance = White(stats[5].ToString());
-                        string spellcritchance = White(stats[6].ToString());
-                        string physcritdamage = White(stats[7].ToString());
+                        string spellcritchance = White(stats[7].ToString());
+                        string physcritdamage = White(stats[6].ToString());
                         string spellcritdamage = White(stats[8].ToString());
-                        ctx.Reply($"Max Health: {maxhealth}, Cast Speed: {attackspeed}, Primary Attack Speed: {primaryattackspeed}, Physical Power: {physicalpower}, Spell Power: {spellpower}, Physical Crit Chance: {physcritchance}, Spell Crit Chance: {spellcritchance}, Phys Crit Damage: {physcritdamage}, Spell Crit Damage: {spellcritdamage}");
+                        ctx.Reply($"Max Health: {maxhealth}, Cast Speed: {attackspeed}, Primary Attack Speed: {primaryattackspeed}, Physical Power: {physicalpower}, Spell Power: {spellpower}, Physical Crit Chance: {physcritchance}, Phys Crit Damage: {spellcritchance}, Spell Crit Chance : {physcritdamage}, Spell Crit Damage: {spellcritdamage}");
                         return;
                     }
                 }
                 ctx.Reply("You don't have an active familiar.");
             }
-            
         }
+
         /*
         [Command(name: "combatModeToggle", shortHand: "combat", adminOnly: false, usage: ".combat", description: "Toggles combat mode for familiar.")]
         public static void MethodFive(ChatCommandContext ctx)
@@ -581,6 +663,7 @@ namespace VCreate.Core.Commands
                 return;
             }
         }
+
         internal struct FamiliarStasisState
         {
             public Entity FamiliarEntity;
