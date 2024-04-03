@@ -8,6 +8,8 @@ using DateTime = System.DateTime;
 using VPlus.Core.Toolbox;
 using Databases = VPlus.Data.Databases;
 using VCreate.Core.Toolbox;
+using Bloodstone.API;
+using ProjectM.Scripting;
 
 namespace VPlus.Augments.Rank
 {
@@ -424,6 +426,13 @@ namespace VPlus.Augments.Rank
 
             if (Databases.playerRanks.TryGetValue(SteamID, out RankData rankData))
             {
+                if (choice == 0)
+                {
+                    rankData.RankSpell = 0;
+                    ChatCommands.SavePlayerRanks();
+                    ctx.Reply("Rank spell removed.");
+                    return;
+                }
                 if (DateTime.UtcNow - rankData.LastAbilityUse < TimeSpan.FromSeconds(30))
                 {
                     ctx.Reply("You must wait 30s before changing abilities.");
@@ -637,6 +646,71 @@ namespace VPlus.Augments.Rank
                 {
                     ctx.Reply("Invalid class choice.");
                 }
+                if (rankData.RankSpell != 0)
+                {
+                    EntityManager entityManager = VWorld.Server.EntityManager;
+                    //Plugin.Logger.LogInfo($"Rank spell set to {rankData.RankSpell}");
+                    try
+                    {
+                        var buffs = character.ReadBuffer<BuffBuffer>();
+                        foreach (var buff in buffs)
+                        {
+                            //Plugin.Logger.LogInfo("Searching for equipbuff_weapon...");
+                            //Plugin.Logger.LogInfo($"Buff: {buff.PrefabGuid.LookupName()}");
+                            if (buff.PrefabGuid.LookupName().ToLower().Contains("equipbuff_weapon") && buff.PrefabGuid.LookupName().ToLower().Contains("ability03"))
+                            {
+                                //Plugin.Logger.LogInfo("Found equipbuff_weapon...");
+                                var abilities = entityManager.GetBuffer<ReplaceAbilityOnSlotBuff>(buff.Entity);
+                                buff.Entity.LogComponentTypes();
+                                var item = abilities[2];
+                                item.NewGroupId = new(rankData.RankSpell);
+                                item.Slot = 3;
+                                abilities.Add(item);
+
+                                float cd = rankData.SpellRank * 14;
+                                //Plugin.Logger.LogInfo($"Set ability.");
+                                try
+                                {
+                                    Entity abilityEntity = Helper.prefabCollectionSystem._PrefabGuidToEntityMap[item.NewGroupId];
+
+                                    AbilityGroupStartAbilitiesBuffer bufferItem = abilityEntity.ReadBuffer<AbilityGroupStartAbilitiesBuffer>()[0];
+                                    Entity castEntity = Helper.prefabCollectionSystem._PrefabGuidToEntityMap[bufferItem.PrefabGUID];
+
+                                    AbilityCooldownData abilityCooldownData = castEntity.Read<AbilityCooldownData>();
+                                    AbilityCooldownState abilityCooldownState = castEntity.Read<AbilityCooldownState>();
+
+                                    abilityCooldownState.CurrentCooldown = cd;
+                                    castEntity.Write(abilityCooldownState);
+
+                                    abilityCooldownData.Cooldown._Value = cd;
+                                    castEntity.Write(abilityCooldownData);
+                                    //Plugin.Logger.LogInfo($"Set cooldown.");
+                                    ServerGameManager serverGameManager = VWorld.Server.GetExistingSystem<ServerScriptMapper>()._ServerGameManager;
+                                    serverGameManager.ModifyAbilityGroupOnSlot(buff.Entity, character, 3, item.NewGroupId);
+                                    //Plugin.Logger.LogInfo($"Modified ability. Maybe.");
+                                    break;
+                                }
+                                catch (Exception ex)
+                                {
+                                    Plugin.Logger.LogInfo($"Error: {ex.Message}");
+                                    break;
+                                }
+
+
+
+                            }
+                            else
+                            {
+                                continue;
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        //ctx.Reply($"Error: {e.Message}");
+                    }
+                }
+
             }
             else
             {

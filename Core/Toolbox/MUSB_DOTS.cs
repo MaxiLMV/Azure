@@ -155,6 +155,37 @@ namespace VPlus.Core.Toolbox
             ModificationType = ModificationType.Add,
             Id = ModificationId.NewId(0)
         };
+        public static ModifyUnitStatBuff_DOTS PhysicalCriticalStrikeChance = new ModifyUnitStatBuff_DOTS()
+        {
+            StatType = UnitStatType.PhysicalCriticalStrikeChance,
+            Value = 0f, // Assuming default value, adjust as necessary
+            ModificationType = ModificationType.Add, // Assuming modification type, adjust as necessary
+            Id = ModificationId.NewId(0)
+        };
+
+        public static ModifyUnitStatBuff_DOTS PhysicalCriticalStrikeDamage = new ModifyUnitStatBuff_DOTS()
+        {
+            StatType = UnitStatType.PhysicalCriticalStrikeDamage,
+            Value = 0f, // Assuming default value, adjust as necessary
+            ModificationType = ModificationType.Add, // Assuming modification type, adjust as necessary
+            Id = ModificationId.NewId(0)
+        };
+
+        public static ModifyUnitStatBuff_DOTS SpellCriticalStrikeChance = new ModifyUnitStatBuff_DOTS()
+        {
+            StatType = UnitStatType.SpellCriticalStrikeChance,
+            Value = 0f, // Assuming default value, adjust as necessary
+            ModificationType = ModificationType.Add, // Assuming modification type, adjust as necessary
+            Id = ModificationId.NewId(0)
+        };
+
+        public static ModifyUnitStatBuff_DOTS SpellCriticalStrikeDamage = new ModifyUnitStatBuff_DOTS()
+        {
+            StatType = UnitStatType.SpellCriticalStrikeDamage,
+            Value = 0f, // Assuming default value, adjust as necessary
+            ModificationType = ModificationType.Add, // Assuming modification type, adjust as necessary
+            Id = ModificationId.NewId(0)
+        };
     }
 
     public class MUSB_Functions
