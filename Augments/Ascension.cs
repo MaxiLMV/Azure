@@ -18,7 +18,7 @@ namespace VPlus.Augments
         public int VTokens { get; set; }
         public DateTime LastConnectionTime { get; private set; }
         public DateTime LastAwardTime { get; private set; }
-
+        public bool Shift { get; set; }
         public bool Spawned { get; set; }
 
         public DivineData(int divinity, int vtokens)

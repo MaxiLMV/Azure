@@ -358,6 +358,44 @@ namespace VPlus.Core.Commands
             }
         }
 
+        [Command(name: "toggleShiftSpell", shortHand: "shift", adminOnly: false, usage: ".shift", description: "If toggled, lock will apply the ability on R to Shift.")]
+
+        public static void ToggleShiftSpell(ChatCommandContext ctx)
+        {
+            if (Plugin.PlayerRankUp == false)
+            {
+                ctx.Reply("PvE Rank is disabled.");
+                return;
+            }
+            var user = ctx.Event.User;
+            string name = user.CharacterName.ToString();
+            var SteamID = user.PlatformId;
+
+            if (Databases.playerDivinity.TryGetValue(SteamID, out var data))
+            {
+                if (data.Shift)
+                {
+                    data.Shift = false;
+                    ChatCommands.SavePlayerRanks();
+
+                    ctx.Reply("Shift spell toggled off.");
+
+                }
+                else
+                {
+                    data.Shift = true;
+                    ChatCommands.SavePlayerRanks();
+                    ctx.Reply("Shift spell toggled on.");
+                }
+            }
+            else
+            {
+                ctx.Reply("You need to be at least rank 1 to use an extra spell slot. An additional slot is granted at rank 3.");
+            }
+        }
+
+
+
         [Command(name: "rankUp", shortHand: "rankup", adminOnly: false, usage: ".rankup", description: "Resets your rank points and increases your rank, granting any applicable rewards.")]
         public static void RankUpCommand(ChatCommandContext ctx)
         {

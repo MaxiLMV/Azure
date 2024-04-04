@@ -27,7 +27,6 @@ namespace VPlus.Hooks
                 { new(-1593377811), 2500 },
                 { new(429052660), 25 },
                 { new(28625845), 200 }
-
             };
 
         private static readonly PrefabGUID fishingPole = new(-1016182556); //as you might have guessed, this is -REDACTED-
@@ -63,7 +62,7 @@ namespace VPlus.Hooks
             Entity userEntity = entityManager.GetComponentData<PlayerCharacter>(owner).UserEntity;
             User user = entityManager.GetComponentData<User>(userEntity);
             //ulong steamID = user.PlatformId;
-            
+
             if (entityManager.HasComponent<WeaponLevel>(entity))
             {
                 HandleWeaponEquipOrUnequip(entityManager, entity, owner);
@@ -83,10 +82,9 @@ namespace VPlus.Hooks
             ulong steamID = user.PlatformId;
             if (buffer[0].NewGroupId == VCreate.Data.Prefabs.AB_Vampire_Unarmed_Primary_MeleeAttack_AbilityGroup)
             {
-               
                 HandleUnarmed(entityManager, entity, owner, buffer);
                 return;
-               
+
                 //HandleFishingPole(entityManager, entity, owner, buffer);
             }
             else if (bufferLength == 3)
@@ -105,9 +103,31 @@ namespace VPlus.Hooks
             Entity userEntity = entityManager.GetComponentData<PlayerCharacter>(owner).UserEntity;
             User user = entityManager.GetComponentData<User>(userEntity);
 
-            if (Databases.playerRanks.TryGetValue(user.PlatformId, out RankData data) && data.RankSpell != 0)
+            if (Databases.playerRanks.TryGetValue(user.PlatformId, out RankData data))
             {
+                if (Databases.playerDivinity.TryGetValue(user.PlatformId, out DivineData divine) && divine.Shift)
+                {
+                    if (data.Spells.Count != 0)
+                    {
+                        ReplaceAbilityOnSlotBuff item = buffer[0];
+                        ReplaceAbilityOnSlotBuff newItem1 = item;
+
+                        PrefabGUID firstSpellGUID = new PrefabGUID(data.Spells.First());
+
+                        if (data.Rank != 0)
+                        {
+                            newItem1.NewGroupId = firstSpellGUID;
+                            newItem1.Slot = 3;
+                            buffer.Add(newItem1);
+                        }
+                    }
+                    return;
+                }
                 if (DateTime.UtcNow - data.LastAbilityUse < TimeSpan.FromSeconds(data.SpellRank * 12))
+                {
+                    return;
+                }
+                if (data.RankSpell == 0)
                 {
                     return;
                 }
@@ -116,7 +136,7 @@ namespace VPlus.Hooks
 
                 newItem.Slot = 3;
                 buffer.Add(newItem);
-                float cooldown =  data.SpellRank * 6;
+                float cooldown = data.SpellRank * 6;
                 try
                 {
                     Entity abilityEntity = Helper.prefabCollectionSystem._PrefabGuidToEntityMap[prefabGUID];
@@ -128,10 +148,10 @@ namespace VPlus.Hooks
                     AbilityCooldownData abilityCooldownData = castEntity.Read<AbilityCooldownData>();
                     AbilityCooldownState abilityCooldownState = castEntity.Read<AbilityCooldownState>();
 
-                    abilityCooldownState.CurrentCooldown = cooldown; 
+                    abilityCooldownState.CurrentCooldown = cooldown;
                     castEntity.Write(abilityCooldownState);
 
-                    abilityCooldownData.Cooldown._Value = cooldown; 
+                    abilityCooldownData.Cooldown._Value = cooldown;
                     castEntity.Write(abilityCooldownData);
 
                     //Plugin.Logger.LogInfo("Cooldown modified.");
@@ -156,7 +176,6 @@ namespace VPlus.Hooks
 
             if (Databases.playerRanks.TryGetValue(steamID, out RankData rankData))
             {
-                
                 // Adjust abilities based on the player's spell choices
                 if (rankData.Spells.Count != 0)
                 {
@@ -184,7 +203,6 @@ namespace VPlus.Hooks
                     // Optionally, add more logic here for additional adjustments
                     //Plugin.Logger.LogInfo("Abilities adjusted.");
                 }
-                    
             }
         }
 
@@ -221,7 +239,6 @@ namespace VPlus.Hooks
                     //data.FishingPole = false; // Reset the flag
                     ChatCommands.SavePlayerRanks();
                 }
-                
             }
         }
     }

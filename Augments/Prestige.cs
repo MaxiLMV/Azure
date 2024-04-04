@@ -16,6 +16,7 @@ namespace VPlus.Augments
         public int Prestiges { get; set; }
         public int PlayerBuff { get; set; }
 
+        
         public PrestigeData(int prestiges, int playerbuff)
         {
             Prestiges = prestiges;

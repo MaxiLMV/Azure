@@ -25,7 +25,7 @@ namespace VPlus.Augments.Rank
 
         public int SpellRank { get; set; }
 
-        public List<int> Spells { get; set; } = new List<int>();
+        public List<int> Spells { get; set; } = [];
 
         public string ClassChoice { get; set; } = "default";
 
