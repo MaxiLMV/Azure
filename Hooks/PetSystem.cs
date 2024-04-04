@@ -1,20 +1,15 @@
 ﻿using Bloodstone.API;
 using HarmonyLib;
 using ProjectM;
-using ProjectM.Behaviours;
 using ProjectM.Network;
-using Steamworks;
 using Unity.Collections;
 using Unity.Entities;
-using UnityEngine;
 using VCreate.Core;
 using VCreate.Core.Toolbox;
 using VCreate.Systems;
 using VRising.GameData.Methods;
 using VRising.GameData.Models;
-using static ProjectM.VoiceMapping;
 using static VCreate.Hooks.PetSystem.PetFocusSystem;
-using static VCreate.Hooks.PetSystem.UnitTokenSystem.UnitToGemMapping;
 using Random = System.Random;
 
 namespace VCreate.Hooks
@@ -71,7 +66,6 @@ namespace VCreate.Hooks
             {
                 UpdatePetExperiencePetKill(killer, died);
             }
-         
 
             public static void UpdatePetExperiencePlayerKill(Entity killer, Entity died)
             {
@@ -164,9 +158,6 @@ namespace VCreate.Hooks
                 DataStructures.SavePetExperience();
             }
 
-
-
-
             public static readonly PrefabGUID[] RandomVisuals =
             [
                 //new PrefabGUID(-646796985),   // BloodBuff_Assault
@@ -189,18 +180,16 @@ namespace VCreate.Hooks
                     { "PhysicalPowerBonus", -1591883586 }, // scholar physical power bonus
                     { "AttackSpeedBonus", -1515928707 }, // scholar attack speed bonus
                     //{ "DamageReduction", 1006510207 } // scholar crit chance bonus
-                    
-                 
                 };
+
             public static readonly Dictionary<int, string> BuffChoiceToNameMap = new()
                 {
                     { 1, "SpellPowerBonus"}, // scholar spell power bonus
                     { 2, "PhysicalPowerBonus" }, // scholar physical power bonus
                     { 3, "AttackSpeedBonus" }, // scholar attack speed bonus
                     //{ 4, "DamageReduction"} // scholar crit chance bonus
-                   
-                 
                 };
+
             public static PrefabGUID GetRandomPrefab()
             {
                 Random random = UnitTokenSystem.Random;
@@ -214,12 +203,9 @@ namespace VCreate.Hooks
                     {FocusToStatMap.StatType.MaxHealth, 5000f},
                     {FocusToStatMap.StatType.AttackSpeed, 2f},
                     {FocusToStatMap.StatType.PrimaryAttackSpeed, 2f},
-                    {FocusToStatMap.StatType.PhysicalPower, 100f},
-                    {FocusToStatMap.StatType.SpellPower, 100f},
-                    {FocusToStatMap.StatType.PhysicalCriticalStrikeChance, 0.75f},
-                    {FocusToStatMap.StatType.PhysicalCriticalStrikeDamage, 2.5f},
-                    {FocusToStatMap.StatType.SpellCriticalStrikeChance, 0.75f},
-                    {FocusToStatMap.StatType.SpellCriticalStrikeDamage, 2.5f}
+                    {FocusToStatMap.StatType.Power, 100f},
+                    {FocusToStatMap.StatType.CriticalChance, 0.75f},
+                    {FocusToStatMap.StatType.CriticalDamage, 2.5f},
                 };
             }
 
@@ -230,12 +216,9 @@ namespace VCreate.Hooks
                     {FocusToStatMap.StatType.MaxHealth, 20f},
                     {FocusToStatMap.StatType.AttackSpeed, 0.01f},
                     {FocusToStatMap.StatType.PrimaryAttackSpeed, 0.02f},
-                    {FocusToStatMap.StatType.PhysicalPower, 1f},
-                    {FocusToStatMap.StatType.SpellPower, 1f},
-                    {FocusToStatMap.StatType.PhysicalCriticalStrikeChance, 0.01f},
-                    {FocusToStatMap.StatType.PhysicalCriticalStrikeDamage, 0.05f},
-                    {FocusToStatMap.StatType.SpellCriticalStrikeChance, 0.01f},
-                    {FocusToStatMap.StatType.SpellCriticalStrikeDamage, 0.05f}
+                    {FocusToStatMap.StatType.Power, 0.01f},
+                    {FocusToStatMap.StatType.CriticalChance, 0.01f},
+                    {FocusToStatMap.StatType.CriticalDamage, 0.05f},
                 };
             }
 
@@ -303,19 +286,13 @@ namespace VCreate.Hooks
                         entity.Write(unitStats);
                         break;
 
-                    case FocusToStatMap.StatType.PhysicalPower:
+                    case FocusToStatMap.StatType.Power:
                         unitStats.PhysicalPower._Value += increase;
-                        //stats.PhysicalPower._Value += increase;
+                        unitStats.SpellPower._Value += increase;
                         if (unitStats.PhysicalPower._Value > cap)
                         {
                             unitStats.PhysicalPower._Value = cap;
                         }
-                        entity.Write(unitStats);
-                        break;
-
-                    case FocusToStatMap.StatType.SpellPower:
-                        unitStats.SpellPower._Value += increase;
-                        //stats.SpellPower._Value += increase;
                         if (unitStats.SpellPower._Value > cap)
                         {
                             unitStats.SpellPower._Value = cap;
@@ -323,25 +300,12 @@ namespace VCreate.Hooks
                         entity.Write(unitStats);
                         break;
 
-                    case FocusToStatMap.StatType.PhysicalCriticalStrikeChance:
+                    case FocusToStatMap.StatType.CriticalChance:
                         unitStats.PhysicalCriticalStrikeChance._Value += increase;
                         if (unitStats.PhysicalCriticalStrikeChance._Value > cap)
                         {
                             unitStats.PhysicalCriticalStrikeChance._Value = cap;
                         }
-                        entity.Write(unitStats);
-                        break;
-
-                    case FocusToStatMap.StatType.PhysicalCriticalStrikeDamage:
-                        unitStats.PhysicalCriticalStrikeDamage._Value += increase;
-                        if (unitStats.PhysicalCriticalStrikeDamage._Value > cap)
-                        {
-                            unitStats.PhysicalCriticalStrikeDamage._Value = cap;
-                        }
-                        entity.Write(unitStats);
-                        break;
-
-                    case FocusToStatMap.StatType.SpellCriticalStrikeChance:
                         unitStats.SpellCriticalStrikeChance._Value += increase;
                         if (unitStats.SpellCriticalStrikeChance._Value > cap)
                         {
@@ -350,7 +314,12 @@ namespace VCreate.Hooks
                         entity.Write(unitStats);
                         break;
 
-                    case FocusToStatMap.StatType.SpellCriticalStrikeDamage:
+                    case FocusToStatMap.StatType.CriticalDamage:
+                        unitStats.PhysicalCriticalStrikeDamage._Value += increase;
+                        if (unitStats.PhysicalCriticalStrikeDamage._Value > cap)
+                        {
+                            unitStats.PhysicalCriticalStrikeDamage._Value = cap;
+                        }
                         unitStats.SpellCriticalStrikeDamage._Value += increase;
                         if (unitStats.SpellCriticalStrikeDamage._Value > cap)
                         {
@@ -358,8 +327,6 @@ namespace VCreate.Hooks
                         }
                         entity.Write(unitStats);
                         break;
-
-                        // Add cases for other stats...
                 }
             }
 
@@ -414,21 +381,21 @@ namespace VCreate.Hooks
                 EntityCategory diedCategory = died.Read<EntityCategory>();
                 if (died.Read<PrefabGUID>().GuidHash.Equals(VCreate.Data.Prefabs.CHAR_Mount_Horse.GuidHash)) return;
                 PrefabGUID toCheck = died.Read<PrefabGUID>();
-                
-                if ((int)diedCategory.UnitCategory < 5 && !died.Read<PrefabGUID>().LookupName().ToLower().Contains("vblood"))
+
+                if ((int)diedCategory.UnitCategory < 5 && !toCheck.LookupName().ToLower().Contains("vblood"))
                 {
-                    if (died.Read<PrefabGUID>().LookupName().ToLower().Contains("unholy") || died.Read<PrefabGUID>().LookupName().ToLower().Contains("trader")) return;
+                    if (toCheck.LookupName().ToLower().Contains("unholy") || toCheck.LookupName().ToLower().Contains("trader")) return;
                     gem = new(UnitToGemMapping.UnitCategoryToGemPrefab[(UnitToGemMapping.UnitType)diedCategory.UnitCategory]);
                     HandleRoll(gem, chance, died, killer);
                 }
-                else if (died.Read<PrefabGUID>().LookupName().ToLower().Contains("vblood"))
+                else if (toCheck.LookupName().ToLower().Contains("vblood"))
                 {
                     PrefabGUID solarus = new(-740796338);
                     PrefabGUID monster = new(1233988687);
                     PrefabGUID manticore = new(980068444);
                     PrefabGUID beast = new(-1936575244);
 
-                    if (died.Read<PrefabGUID>().Equals(solarus) || died.Read<PrefabGUID>().Equals(monster) || died.Read<PrefabGUID>().Equals(manticore) || died.Read<PrefabGUID>().Equals(beast)) return;
+                    if (toCheck.Equals(solarus) || toCheck.Equals(monster) || died.Read<PrefabGUID>().Equals(manticore) || died.Read<PrefabGUID>().Equals(beast)) return;
                     gem = new(UnitToGemMapping.UnitCategoryToGemPrefab[UnitToGemMapping.UnitType.VBlood]);
                     HandleRoll(gem, chance / vfactor, died, killer); //dont forget to divide by vfactor after testing
                 }
@@ -446,7 +413,6 @@ namespace VCreate.Hooks
                     if (RollForChance(gem, dropChance, died))
                     {
                         //want to give player the item here
-
                         ulong playerId = killer.Read<PlayerCharacter>().UserEntity.Read<User>().PlatformId;
                         if (DataStructures.PlayerPetsMap.TryGetValue(playerId, out var profiles))
                         {
@@ -463,72 +429,97 @@ namespace VCreate.Hooks
                         }
 
                         UserModel userModel = VRising.GameData.GameData.Users.GetUserByCharacterName(killer.Read<PlayerCharacter>().Name.ToString());
-                        if (Helper.AddItemToInventory(userModel.FromCharacter.Character, gem, 1, out Entity test, false))
-                        {
-                            bool flag = false;
-                            if (!DataStructures.UnlockedPets[playerId].Contains(died.Read<PrefabGUID>().GuidHash) && DataStructures.UnlockedPets[playerId].Count < 15)
-                            {
-                                DataStructures.UnlockedPets[playerId].Add(died.Read<PrefabGUID>().GuidHash);
-                                
-                                int randInt = UnitTokenSystem.Random.Next(0, 100);
-                                if (randInt < 20)
-                                {
-                                    DataStructures.PetBuffMap[playerId].Add(died.Read<PrefabGUID>().GuidHash, []);
-
-                                    PrefabGUID prefabGUID = DeathEventHandlers.GetRandomPrefab();
-                                    HashSet<int> visuals = [];
-                                    visuals.Add(prefabGUID.GuidHash);
-                                    DataStructures.PetBuffMap[playerId][died.Read<PrefabGUID>().GuidHash].Add("Shiny", visuals);
-                                    DataStructures.SavePetBuffMap();
-                                    flag = true;
-                                }
-                                
-                                DataStructures.SaveUnlockedPets();
-                                if (!flag)
-                                {
-                                    ServerChatUtils.SendSystemMessageToClient(VWorld.Server.EntityManager, killer.Read<PlayerCharacter>().UserEntity.Read<User>(), "Your bag feels slightly heavier...");
-                                }
-                                else
-                                {
-                                    ServerChatUtils.SendSystemMessageToClient(VWorld.Server.EntityManager, killer.Read<PlayerCharacter>().UserEntity.Read<User>(), "Your bag feels slightly heavier... This one seems special.");
-                                }
-                            }
-                            else
-                            {
-                                Plugin.Log.LogInfo("Player unlocks full (15), not adding to unlocked pets.");
-                            }
-                            
-                        }
-                        else
-                        {
-                            userModel.DropItemNearby(gem, 1);
-                            if (!DataStructures.UnlockedPets[playerId].Contains(died.Read<PrefabGUID>().GuidHash) && DataStructures.UnlockedPets[playerId].Count < 15)
-                            {
-                                DataStructures.UnlockedPets[playerId].Add(died.Read<PrefabGUID>().GuidHash);
-                                /*
-                                int randInt = UnitTokenSystem.Random.Next(0, 100);
-                                if (randInt < 20)
-                                {
-                                    DataStructures.PetBuffMap[playerId].Add(died.Read<PrefabGUID>().GuidHash, []);
-                                    PrefabGUID prefabGUID = DeathEventHandlers.GetRandomPrefab();
-                                    DataStructures.PetBuffMap[playerId][died.Read<PrefabGUID>().GuidHash].Add(prefabGUID.GuidHash);
-                                    DataStructures.SavePetBuffMap();
-                                }
-                                */
-                                DataStructures.SaveUnlockedPets();
-                            }
-                            else
-                            {
-                                Plugin.Log.LogInfo("Player unlocks full (15), not adding to unlocked pets.");
-                            }
-                            ServerChatUtils.SendSystemMessageToClient(VWorld.Server.EntityManager, killer.Read<PlayerCharacter>().UserEntity.Read<User>(), "Something fell out of your bag!");
-                        }
+                        HandlePetUnlockAndBuff(userModel, gem, died, killer, playerId);
                     }
                 }
                 catch (Exception e)
                 {
                     Plugin.Log.LogInfo(e.Message);
                 }
+            }
+
+            public static void HandlePetUnlockAndBuff(UserModel userModel, PrefabGUID gem, Entity died, Entity killer, ulong playerId)
+            {
+                bool itemAdded = Helper.AddItemToInventory(userModel.FromCharacter.Character, gem, 1, out Entity _, false);
+                bool specialPet = false;
+                int petKey = died.Read<PrefabGUID>().GuidHash;
+                User user = killer.Read<PlayerCharacter>().UserEntity.Read<User>();
+                if (!DataStructures.UnlockedPets[playerId].Contains(petKey) && DataStructures.UnlockedPets[playerId].Count < 15)
+                {
+                    DataStructures.UnlockedPets[playerId].Add(petKey);
+                    DataStructures.SaveUnlockedPets();
+
+                    specialPet = TryAddSpecialPetBuff(playerId, died);
+
+                    if (!itemAdded)
+                    {
+                        userModel.DropItemNearby(gem, 1);
+                        string message = specialPet ? "Something fell out of your bag! This one seems special." : "Something fell out of your bag!";
+                        ServerChatUtils.SendSystemMessageToClient(VWorld.Server.EntityManager, user, message);
+                    }
+                    else
+                    {
+                        string message = specialPet ? "Your bag feels slightly heavier... This one seems special." : "Your bag feels slightly heavier...";
+                        ServerChatUtils.SendSystemMessageToClient(VWorld.Server.EntityManager, user, message);
+                    }
+                }
+                else
+                {
+                    Plugin.Log.LogInfo("Player unlocks full (15) or already unlocked, not adding to unlocked pets. Rolling for shiny...");
+                    specialPet = TryAddSpecialPetBuff(playerId, died);
+                    if (specialPet)
+                    {
+
+                        PrefabGUID prefabGUID = died.Read<PrefabGUID>();
+                        string message = $"You've unlocked a visual for {prefabGUID.LookupName()}";
+                        ServerChatUtils.SendSystemMessageToClient(VWorld.Server.EntityManager, user, message);
+                    }
+                }
+            }
+
+            public static bool TryAddSpecialPetBuff(ulong playerId, Entity died)
+            {
+                if (DataStructures.PetBuffMap.ContainsKey(playerId) && DataStructures.PetBuffMap[playerId].ContainsKey(died.Read<PrefabGUID>().GuidHash))
+                {
+                    if (DataStructures.PetBuffMap[playerId][died.Read<PrefabGUID>().GuidHash].TryGetValue("Shiny", out var data))
+                    {
+                        if (data.Count > 0)
+                        {
+                            Plugin.Log.LogInfo("Unlocked unit already has shiny buff, not adding another.");
+                            return false;
+                        }
+                    }
+                }
+                int randInt = UnitTokenSystem.Random.Next(0, 100);
+                if (randInt < 20)
+                {
+                    // Initialize visuals set and select a random prefab
+                    HashSet<int> visuals = [];
+                    PrefabGUID prefabGUID = DeathEventHandlers.GetRandomPrefab();
+                    visuals.Add(prefabGUID.GuidHash);
+
+                    // Ensure the pet buff map for the player exists
+                    if (!DataStructures.PetBuffMap.ContainsKey(playerId))
+                    {
+                        DataStructures.PetBuffMap[playerId] = [];
+                    }
+
+                    // Ensure the specific pet has an entry in the buff map
+                    if (!DataStructures.PetBuffMap[playerId].ContainsKey(died.Read<PrefabGUID>().GuidHash))
+                    {
+                        DataStructures.PetBuffMap[playerId].Add(died.Read<PrefabGUID>().GuidHash, []);
+                    }
+
+                    // Add the "Shiny" buff with visuals to the pet
+                    DataStructures.PetBuffMap[playerId][died.Read<PrefabGUID>().GuidHash].Add("Shiny", visuals);
+
+                    // Save the updated pet buff map
+                    DataStructures.SavePetBuffMap();
+
+                    return true; // Indicates a special pet was added
+                }
+
+                return false; // Indicates no special pet was added
             }
 
             public static bool RollForChance(PrefabGUID gem, float chance, Entity died)
@@ -558,25 +549,19 @@ namespace VCreate.Hooks
                     MaxHealth,
                     AttackSpeed,
                     PrimaryAttackSpeed,
-                    PhysicalPower,
-                    SpellPower,
-                    PhysicalCriticalStrikeChance,
-                    PhysicalCriticalStrikeDamage,
-                    SpellCriticalStrikeChance,
-                    SpellCriticalStrikeDamage
+                    Power,
+                    CriticalChance,
+                    CriticalDamage
                 }
 
                 public static readonly Dictionary<int, StatType> FocusStatMap = new()
-{
+                {
                     { 0, StatType.MaxHealth },
                     { 1, StatType.AttackSpeed },
                     { 2, StatType.PrimaryAttackSpeed },
-                    { 3, StatType.PhysicalPower },
-                    { 4, StatType.SpellPower },
-                    { 5, StatType.PhysicalCriticalStrikeChance },
-                    { 6, StatType.PhysicalCriticalStrikeDamage },
-                    { 7, StatType.SpellCriticalStrikeChance },
-                    { 8, StatType.SpellCriticalStrikeDamage }
+                    { 3, StatType.Power },
+                    { 4, StatType.CriticalChance },
+                    { 5, StatType.CriticalDamage }
                 };
             }
         }

@@ -1,26 +1,18 @@
 ﻿using Bloodstone.API;
 using ProjectM;
 using ProjectM.Network;
-using System.Runtime.CompilerServices;
+using ProjectM.Scripting;
+using System.Text.RegularExpressions;
 using Unity.Entities;
+using Unity.Transforms;
 using VampireCommandFramework;
-using VCreate.Core.Converters;
 using VCreate.Core.Toolbox;
-using static VCreate.Core.Services.PlayerService;
-using VCreate.Data;
-using UnityEngine;
+using VCreate.Hooks;
 using VCreate.Systems;
 using VRising.GameData.Models;
-using VCreate.Hooks;
-using static VCreate.Systems.Enablers.HorseFunctions;
-using ProjectM.Scripting;
-using static VCreate.Hooks.PetSystem.UnitTokenSystem;
-using Unity.Transforms;
-using Unity.Collections;
-using static VCreate.Core.Toolbox.FontColors;
 using VRising.GameData.Utils;
-using Epic.OnlineServices.Stats;
-using UnityEngine.TextCore;
+using static VCreate.Core.Toolbox.FontColors;
+using static VCreate.Hooks.PetSystem.UnitTokenSystem;
 
 namespace VCreate.Core.Commands
 {
@@ -57,64 +49,6 @@ namespace VCreate.Core.Commands
             else
             {
                 ctx.Reply("You don't have any unlocked familiars yet.");
-            }
-        }
-
-        [Command(name: "chooseMaxBuff", shortHand: "max", adminOnly: false, usage: ".max [#]", description: "Chooses buff for familiar to receieve when summoned if at level 80.")]
-        public static void ChooseMaxBuff(ChatCommandContext ctx, int choice)
-        {
-            ulong platformId = ctx.User.PlatformId;
-            var buffs = VCreate.Hooks.PetSystem.DeathEventHandlers.BuffChoiceToNameMap;
-            if (choice < 1 || choice > buffs.Count)
-            {
-                ctx.Reply($"Invalid choice, please use 1 to {buffs.Count}.");
-                return;
-            }
-            var toSet = buffs[choice];
-            var map = VCreate.Hooks.PetSystem.DeathEventHandlers.BuffNameToGuidMap;
-            if (DataStructures.PlayerPetsMap.TryGetValue(platformId, out Dictionary<string, PetExperienceProfile> data))
-            {
-                Entity familiar = FindPlayerFamiliar(ctx.Event.SenderCharacterEntity);
-                if (familiar.Equals(Entity.Null))
-                {
-                    ctx.Reply("Make sure your familiar is called before setting this.");
-                }
-                if (data.TryGetValue(familiar.Read<PrefabGUID>().LookupName().ToString(), out PetExperienceProfile profile) && profile.Active)
-                {
-                    if (DataStructures.PetBuffMap[platformId].TryGetValue(familiar.Read<PrefabGUID>().GuidHash, out var buffData))
-                    {
-                        if (buffData.ContainsKey("Buffs"))
-                        {
-                            buffData["Buffs"].Clear();
-                            buffData["Buffs"].Add(map[toSet]);
-                            DataStructures.SavePetBuffMap();
-                            ctx.Reply($"Max buff set to {toSet}.");
-                        }
-                        else
-                        {
-                            HashSet<int> newInts = [];
-                            newInts.Add(map[toSet]);
-                            buffData.Add("Buffs", newInts);
-                            DataStructures.SavePetBuffMap();
-                            ctx.Reply($"Max buff set to {toSet}.");
-                        }
-                    }
-                    else
-                    {
-                        Dictionary<string, HashSet<int>> newDict = new();
-                        HashSet<int> newInts = [];
-                        newInts.Add(map[toSet]);
-                        newDict.Add("Buffs", newInts);
-                        DataStructures.PetBuffMap[platformId].Add(familiar.Read<PrefabGUID>().GuidHash, newDict);
-                        DataStructures.SavePetBuffMap();
-                        ctx.Reply($"Max buff set to {toSet}.");
-                    
-                    }
-                }
-                else
-                {
-                    ctx.Reply("You don't have an active familiar.");
-                }
             }
         }
 
@@ -187,18 +121,18 @@ namespace VCreate.Core.Commands
             }
         }
 
-        [Command(name: "bindFamiliar", shortHand: "bind", adminOnly: false, usage: ".bind", description: "Binds familiar from first soulgem found in inventory and sets profile to active.")]
+        [Command(name: "bindFamiliar", shortHand: "bind", adminOnly: false, usage: ".bind", description: "Binds familiar with correct gem in inventory.")]
         public static void MethodOne(ChatCommandContext ctx)
         {
             EntityManager entityManager = VWorld.Server.EntityManager;
             ulong platformId = ctx.User.PlatformId;
-            
+
             // verify states before proceeding, make sure no active profiles and no familiars in stasis
             Entity character = ctx.Event.SenderCharacterEntity;
             var buffBuffer = character.ReadBuffer<BuffBuffer>();
             foreach (var buff in buffBuffer)
             {
-                if (buff.PrefabGuid.LookupName().Contains("shapeshift"))
+                if (buff.PrefabGuid.LookupName().ToLower().Contains("shapeshift"))
                 {
                     ctx.Reply("You can't bind to a familiar while shapeshifted or dominating presence is active.");
                     return;
@@ -231,15 +165,20 @@ namespace VCreate.Core.Commands
                         return;
                     }
                 }
-                if (PlayerFamiliarStasisMap.TryGetValue(platformId, out var familiarStasisState) && familiarStasisState.IsInStasis)
-                {
-                    ctx.Reply("You have a familiar in stasis. If you want to bind to another, summon it and unbind first.");
-                    return;
-                }
+            }
+            if (PlayerFamiliarStasisMap.TryGetValue(platformId, out var familiarStasisState) && familiarStasisState.IsInStasis)
+            {
+                ctx.Reply("You have a familiar in stasis. If you want to bind to another, summon it and unbind first.");
+                return;
             }
             bool flag = false;
             if (DataStructures.PlayerSettings.TryGetValue(platformId, out var settings))
             {
+                if (settings.Familiar == 0)
+                {
+                    ctx.Reply("You haven't set a familiar to bind. Use .set [#] to select an unlocked familiar from .listfam");
+                    return;
+                }
                 Entity unlocked = VWorld.Server.GetExistingSystem<PrefabCollectionSystem>()._PrefabGuidToEntityMap[new(settings.Familiar)];
                 EntityCategory unitCategory = unlocked.Read<EntityCategory>();
                 //Plugin.Log.LogInfo(unitCategory.UnitCategory.ToString());
@@ -253,16 +192,13 @@ namespace VCreate.Core.Commands
                     gem = new(PetSystem.UnitTokenSystem.UnitToGemMapping.UnitCategoryToGemPrefab[(UnitToGemMapping.UnitType)unitCategory.UnitCategory]);
                 }
 
-                //Plugin.Log.LogInfo(gem.LookupName());
-                //Plugin.Log.LogInfo(gem.GuidHash.ToString());
                 UserModel userModel = VRising.GameData.GameData.Users.GetUserByPlatformId(platformId);
                 var inventory = userModel.Inventory.Items;
                 foreach (var item in inventory)
                 {
                     if (item.Item.PrefabGUID.GuidHash == gem.GuidHash)
                     {
-                        flag = true;
-                        InventoryUtilitiesServer.TryRemoveItem(VWorld.Server.EntityManager, ctx.Event.SenderCharacterEntity, gem, 1);
+                        flag = InventoryUtilitiesServer.TryRemoveItem(VWorld.Server.EntityManager, ctx.Event.SenderCharacterEntity, gem, 1);
                         break;
                     }
                 }
@@ -271,7 +207,6 @@ namespace VCreate.Core.Commands
                     if (DataStructures.PlayerSettings.TryGetValue(platformId, out var Settings))
                     {
                         Settings.Binding = true;
-
                         OnHover.SummonFamiliar(ctx.Event.SenderCharacterEntity.Read<PlayerCharacter>().UserEntity, new(settings.Familiar));
                     }
                 }
@@ -356,6 +291,7 @@ namespace VCreate.Core.Commands
             }
         }
 
+        /*
         //[Command(name: "enableFamiliar", shortHand: "call", usage: ".call", description: "Summons familar if found in stasis.", adminOnly: false)]
         public static void EnableFamiliar(ChatCommandContext ctx)
         {
@@ -430,6 +366,7 @@ namespace VCreate.Core.Commands
                 return;
             }
         }
+        */
 
         [Command(name: "setFamiliarFocus", shortHand: "focus", adminOnly: false, usage: ".focus [#]", description: "Sets the stat your familiar will specialize in when leveling up.")]
         public static void MethodFour(ChatCommandContext ctx, int stat)
@@ -443,7 +380,7 @@ namespace VCreate.Core.Commands
                     int toSet = stat - 1;
                     if (toSet < 0 || toSet > PetSystem.PetFocusSystem.FocusToStatMap.FocusStatMap.Count - 1)
                     {
-                        ctx.Reply($"Invalid choice, please use 1 to {PetSystem.PetFocusSystem.FocusToStatMap.FocusStatMap.Count}.");
+                        ctx.Reply($"Invalid choice, please use 1 to {PetSystem.PetFocusSystem.FocusToStatMap.FocusStatMap.Count}. Use .stats to see options.");
                         return;
                     }
                     profile.Focus = toSet;
@@ -455,7 +392,64 @@ namespace VCreate.Core.Commands
                 }
                 else
                 {
-                    ctx.Reply("You don't have an active familiar.");
+                    ctx.Reply("Couldn't find active familiar in followers.");
+                }
+            }
+        }
+
+        [Command(name: "chooseMaxBuff", shortHand: "max", adminOnly: false, usage: ".max [#]", description: "Chooses buff for familiar to receieve when summoned if at level 80.")]
+        public static void ChooseMaxBuff(ChatCommandContext ctx, int choice)
+        {
+            ulong platformId = ctx.User.PlatformId;
+            var buffs = VCreate.Hooks.PetSystem.DeathEventHandlers.BuffChoiceToNameMap;
+            if (choice < 1 || choice > buffs.Count)
+            {
+                ctx.Reply($"Invalid choice, please use 1 to {buffs.Count}.");
+                return;
+            }
+            var toSet = buffs[choice];
+            var map = VCreate.Hooks.PetSystem.DeathEventHandlers.BuffNameToGuidMap;
+            if (DataStructures.PlayerPetsMap.TryGetValue(platformId, out Dictionary<string, PetExperienceProfile> data))
+            {
+                Entity familiar = FindPlayerFamiliar(ctx.Event.SenderCharacterEntity);
+                if (familiar.Equals(Entity.Null))
+                {
+                    ctx.Reply("Make sure your familiar is present before setting this.");
+                }
+                if (data.TryGetValue(familiar.Read<PrefabGUID>().LookupName().ToString(), out PetExperienceProfile profile) && profile.Active)
+                {
+                    if (DataStructures.PetBuffMap[platformId].TryGetValue(familiar.Read<PrefabGUID>().GuidHash, out var buffData))
+                    {
+                        if (buffData.ContainsKey("Buffs"))
+                        {
+                            buffData["Buffs"].Clear();
+                            buffData["Buffs"].Add(map[toSet]);
+                            DataStructures.SavePetBuffMap();
+                            ctx.Reply($"Max buff set to {toSet}.");
+                        }
+                        else
+                        {
+                            HashSet<int> newInts = [];
+                            newInts.Add(map[toSet]);
+                            buffData.Add("Buffs", newInts);
+                            DataStructures.SavePetBuffMap();
+                            ctx.Reply($"Max buff set to {toSet}.");
+                        }
+                    }
+                    else
+                    {
+                        Dictionary<string, HashSet<int>> newDict = [];
+                        HashSet<int> newInts = [];
+                        newInts.Add(map[toSet]);
+                        newDict.Add("Buffs", newInts);
+                        DataStructures.PetBuffMap[platformId].Add(familiar.Read<PrefabGUID>().GuidHash, newDict);
+                        DataStructures.SavePetBuffMap();
+                        ctx.Reply($"Max buff set to {toSet}.");
+                    }
+                }
+                else
+                {
+                    ctx.Reply("Couldn't find active familiar in followers.");
                 }
             }
         }
@@ -478,23 +472,81 @@ namespace VCreate.Core.Commands
                         string physicalpower = White(stats[3].ToString());
                         string spellpower = White(stats[4].ToString());
                         string physcritchance = White(stats[5].ToString());
-                        string spellcritchance = White(stats[7].ToString());
                         string physcritdamage = White(stats[6].ToString());
+                        string spellcritchance = White(stats[7].ToString());
                         string spellcritdamage = White(stats[8].ToString());
-                        ctx.Reply($"Max Health: {maxhealth}, Cast Speed: {attackspeed}, Primary Attack Speed: {primaryattackspeed}, Physical Power: {physicalpower}, Spell Power: {spellpower}, Physical Crit Chance: {physcritchance}, Phys Crit Damage: {spellcritchance}, Spell Crit Chance : {physcritdamage}, Spell Crit Damage: {spellcritdamage}");
+                        string avgPower = White(((stats[3] + stats[4]) / 2).ToString());
+                        string avgCritChance = White(((stats[5] + stats[7]) / 2).ToString());
+                        string avgCritDamage = White(((stats[6] + stats[8]) / 2).ToString());
+                        ctx.Reply($"Max Health: {maxhealth}, Cast Speed: {attackspeed}, Primary Attack Speed: {primaryattackspeed}, Power: {avgPower}, Critical Chance: {avgCritChance}, Critical Damage: {avgCritDamage}");
+                        if (DataStructures.PetBuffMap.TryGetValue(platformId, out var keyValuePairs))
+                        {
+                            string input = key;
+                            string pattern = @"PrefabGuid\((-?\d+)\)"; // Pattern to match PrefabGuid(-number)
+
+                            Match match = Regex.Match(input, pattern);
+                            if (match.Success)
+                            {
+                                // Extracted number is in the first group (groups are indexed starting at 1)
+                                string extractedNumber = match.Groups[1].Value;
+                                //Console.WriteLine($"Extracted Number: {extractedNumber}");
+
+                                // Optionally convert to a numeric type
+                                int guidhash = int.Parse(extractedNumber);
+                                if (keyValuePairs.TryGetValue(guidhash, out var buffs))
+                                {
+                                    if (buffs.TryGetValue("Buffs", out var buff))
+                                    {
+                                        List<string> buffNamesList = [];
+                                        foreach (var buffName in buff)
+                                        {
+                                            PrefabGUID prefabGUID = new(buffName);
+                                            string colorBuff = VCreate.Core.Toolbox.FontColors.Cyan(prefabGUID.GetPrefabName());
+                                            buffNamesList.Add(colorBuff);
+                                        }
+                                        // Join all formatted buff names with a separator (e.g., ", ") to create a single string
+                                        string allBuffsOneLine = string.Join(", ", buffNamesList);
+
+                                        // Print the concatenated string of buff names
+                                        ctx.Reply($"Active Buffs: {allBuffsOneLine}");
+                                    }
+                                    if (buffs.TryGetValue("Shiny", out var shiny))
+                                    {
+                                        PrefabGUID prefabGUID = new(shiny.First());
+                                        string colorShiny = VCreate.Core.Toolbox.FontColors.Pink(prefabGUID.GetPrefabName());
+                                        ctx.Reply($"Shiny Buff: {colorShiny}");
+                                    }
+                                }
+                            }
+                        }
                         return;
                     }
                 }
-                ctx.Reply("You don't have an active familiar.");
+                ctx.Reply("Couldn't find active familiar in followers.");
             }
         }
+        [Command(name: "toggleFamiliar", shortHand: "toggle", usage: ".toggle", description: "Calls or dismisses familar.", adminOnly: false)]
 
+        public static void ToggleFam(ChatCommandContext ctx)
+        {
+            ulong platformId = ctx.User.PlatformId;
+            if (!Services.PlayerService.TryGetPlayerFromString(ctx.Event.User.CharacterName.ToString(), out var player)) return;
+            VCreate.Hooks.EmoteSystemPatch.CallDismiss(player, platformId);
+        }
+        [Command(name: "combatModeToggle", shortHand: "combat", adminOnly: false, usage: ".combat", description: "Toggles combat mode for familiar.")]
+
+        public static void CombatModeToggle(ChatCommandContext ctx)
+        {
+            ulong platformId = ctx.User.PlatformId;
+            if (!Services.PlayerService.TryGetPlayerFromString(ctx.Event.User.CharacterName.ToString(), out var player)) return;
+            VCreate.Hooks.EmoteSystemPatch.ToggleCombat(player, platformId);
+        }
         /*
-        [Command(name: "combatModeToggle", shortHand: "combat", adminOnly: false, usage: ".combat", description: "Toggles combat mode for familiar.")]
         public static void MethodFive(ChatCommandContext ctx)
         {
             ulong platformId = ctx.User.PlatformId;
             var buffs = ctx.Event.SenderCharacterEntity.ReadBuffer<BuffBuffer>();
+            
             foreach (var buff in buffs)
             {
                 if (buff.PrefabGuid.GuidHash == VCreate.Data.Prefabs.Buff_InCombat.GuidHash)
@@ -503,84 +555,7 @@ namespace VCreate.Core.Commands
                     return;
                 }
             }
-            if (DataStructures.PlayerPetsMap.TryGetValue(platformId, out Dictionary<string, PetExperienceProfile> data))
-            {
-                ServerGameManager serverGameManager = VWorld.Server.GetExistingSystem<ServerScriptMapper>()._ServerGameManager;
-                BuffUtility.BuffSpawner buffSpawner = BuffUtility.BuffSpawner.Create(serverGameManager);
-                EntityCommandBufferSystem entityCommandBufferSystem = VWorld.Server.GetExistingSystem<EntityCommandBufferSystem>();
-                EntityCommandBuffer entityCommandBuffer = entityCommandBufferSystem.CreateCommandBuffer();
-                Entity familiar = FindPlayerFamiliar(ctx.Event.SenderCharacterEntity);
-                if (familiar.Equals(Entity.Null))
-                {
-                    ctx.Reply("Summon your familiar before toggling this.");
-                    return;
-                }
-                if (data.TryGetValue(familiar.Read<PrefabGUID>().LookupName().ToString(), out PetExperienceProfile profile) && profile.Active)
-                {
-                    profile.Combat = !profile.Combat; // this will be false when first triggered
-                    FactionReference factionReference = familiar.Read<FactionReference>();
-                    PrefabGUID ignored = new(-1430861195);
-                    PrefabGUID player = new(1106458752);
-                    if (!profile.Combat)
-                    {
-                        factionReference.FactionGuid._Value = ignored;
-                    }
-                    else
-                    {
-                        factionReference.FactionGuid._Value = player;
-                    }
-
-                    //familiar.Write(new Immortal { IsImmortal = !profile.Combat });
-
-                    familiar.Write(factionReference);
-                    BufferFromEntity<BuffBuffer> bufferFromEntity = VWorld.Server.EntityManager.GetBufferFromEntity<BuffBuffer>();
-                    if (profile.Combat)
-                    {
-                        BuffUtility.TryRemoveBuff(ref buffSpawner, entityCommandBuffer, VCreate.Data.Prefabs.AB_Charm_Active_Human_Buff, familiar);
-                        BuffUtility.TryRemoveBuff(ref buffSpawner, entityCommandBuffer, VCreate.Data.Prefabs.Admin_Invulnerable_Buff, familiar);
-                    }
-                    else
-                    {
-                        OnHover.BuffNonPlayer(familiar, VCreate.Data.Prefabs.Admin_Invulnerable_Buff);
-                        OnHover.BuffNonPlayer(familiar, VCreate.Data.Prefabs.AB_Charm_Active_Human_Buff);
-                    }
-
-                    data[familiar.Read<PrefabGUID>().LookupName().ToString()] = profile;
-                    DataStructures.PlayerPetsMap[platformId] = data;
-                    DataStructures.SavePetExperience();
-                    if (!profile.Combat)
-                    {
-                        string disabledColor = VCreate.Core.Toolbox.FontColors.Pink("disabled");
-                        ctx.Reply($"Combat for familiar is {disabledColor}. It cannot die and won't participate, however, no experience will be gained.");
-                    }
-                    else
-                    {
-                        string enabledColor = VCreate.Core.Toolbox.FontColors.Green("enabled");
-                        ctx.Reply($"Combat for familiar is {enabledColor}. It will fight till glory or death and gain experience.");
-                    }
-                }
-            }
-            else
-            {
-                ctx.Reply("You don't have any familiars.");
-                return;
-            }
-        }
-        */
-
-        [Command(name: "combatModeToggle", shortHand: "combat", adminOnly: false, usage: ".combat", description: "Toggles combat mode for familiar.")]
-        public static void MethodFive(ChatCommandContext ctx)
-        {
-            ulong platformId = ctx.User.PlatformId;
-            var buffs = ctx.Event.SenderCharacterEntity.ReadBuffer<BuffBuffer>();
-            foreach (var buff in buffs)
-            {
-                if (buff.PrefabGuid.GuidHash == VCreate.Data.Prefabs.Buff_InCombat.GuidHash)
-                {
-                    ctx.Reply("You cannot toggle combat mode during combat.");
-                    return;
-                }
-            }
+            
             if (DataStructures.PlayerPetsMap.TryGetValue(platformId, out Dictionary<string, PetExperienceProfile> data))
             {
                 ServerGameManager serverGameManager = VWorld.Server.GetExistingSystem<ServerScriptMapper>()._ServerGameManager;
@@ -656,6 +631,10 @@ namespace VCreate.Core.Commands
                         ctx.Reply($"Combat for familiar is {enabledColor}. It will fight till glory or death and gain experience.");
                     }
                 }
+                else
+                {
+                    ctx.Reply("Couldn't find active familiar in followers.");
+                }
             }
             else
             {
@@ -663,7 +642,7 @@ namespace VCreate.Core.Commands
                 return;
             }
         }
-
+        */
         internal struct FamiliarStasisState
         {
             public Entity FamiliarEntity;
@@ -690,6 +669,14 @@ namespace VCreate.Core.Commands
                     {
                         return follower.Entity._Entity;
                     }
+                }
+            }
+            if (followers.Length != 0) // want to check for invalid followers
+            {
+                foreach (var follower in followers)
+                {
+                    if (!follower.Entity._Entity.Has<PrefabGUID>()) continue;
+                    return follower.Entity._Entity;
                 }
             }
 

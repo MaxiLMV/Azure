@@ -10,6 +10,8 @@ using static VCreate.Core.Services.PlayerService;
 using VCreate.Data;
 using UnityEngine;
 using VCreate.Systems;
+using ProjectM.Scripting;
+using static Il2CppSystem.Data.Common.ObjectStorage;
 
 namespace VCreate.Core.Commands
 {
@@ -56,25 +58,39 @@ namespace VCreate.Core.Commands
 
     internal class MiscCommands
     {
-        [Command(name: "demigod", shortHand: "deus", adminOnly: true, usage: ".deus", description: "Activates demigod mode. Use debuff mode to clear from self.")]
+        [Command(name: "demigod", shortHand: "deus", adminOnly: true, usage: ".deus", description: "Activates demigod mode. Use again to clear.")]
         public static void DemigodCommand(ChatCommandContext ctx)
         {
+            PrefabGUID ignored = new(-1430861195);
+            PrefabGUID playerfaction = new(1106458752);
+
+            BuffUtility.BuffSpawner buffSpawner = BuffUtility.BuffSpawner.Create(VWorld.Server.GetExistingSystem<ServerScriptMapper>()._ServerGameManager);
+            EntityCommandBufferSystem entityCommandBufferSystem = VWorld.Server.GetExistingSystem<EntityCommandBufferSystem>();
+            EntityCommandBuffer entityCommandBuffer = entityCommandBufferSystem.CreateCommandBuffer();
             Entity character = ctx.Event.SenderCharacterEntity;
             ulong SteamID = ctx.Event.User.PlatformId;
-
-            if (DataStructures.PlayerSettings.TryGetValue(SteamID, out Omnitool data))
+            BufferFromEntity<BuffBuffer> buffBuffer = VWorld.Server.EntityManager.GetBufferFromEntity<BuffBuffer>(false);
+            bool check = BuffUtility.TryGetBuff(character, VCreate.Data.Buffs.Admin_Invulnerable_Buff, buffBuffer, out var buff);
+            if (check)
             {
-                Helper.BuffCharacter(character, VCreate.Data.Buffs.Admin_Invulnerable_Buff, -1, false);
-                //Helper.BuffCharacter(character, VCreate.Data.Buffs.AB_Vampire_VeilOfBlood_Buff, -1, true);
-                OnHover.BuffNonPlayer(character, VCreate.Data.Buffs.Admin_Invulnerable_Buff);
-                //data.SetData("Debuff", VCreate.Data.Buffs.Admin_Invulnerable_Buff.GuidHash);
-                ctx.Reply("You're now invulnerable. Use debuff mode to return to normal. (use guids for Admin_Invulnerable_Buff and AB_Vampire_VeilOfBlood_Buff");
+                BuffUtility.TryRemoveBuff(ref buffSpawner, entityCommandBuffer, VCreate.Data.Buffs.Admin_Invulnerable_Buff, character);
+                // also set faction back to players
+                FactionReference factionReference = character.Read<FactionReference>();
+                factionReference.FactionGuid._Value = playerfaction;
+                character.Write(factionReference);
+                ctx.Reply("Demigod mode disabled.");
             }
             else
             {
-                ctx.Reply("Couldn't find omnitool data.");
+                OnHover.BuffNonPlayer(ctx.Event.SenderCharacterEntity, VCreate.Data.Buffs.Admin_Invulnerable_Buff);
+                // also set faction to ignored
+                FactionReference factionReference = character.Read<FactionReference>();
+                factionReference.FactionGuid._Value = ignored;
+                character.Write(factionReference);
+                ctx.Reply("Demigod mode enabled. (can't be harmed, enemies ignore you)");
             }
         }
+
         [Command(name: "unlock", shortHand: "ul", adminOnly: true, usage: ".ul [PlayerName]", description: "Unlocks vBloods and research.")]
         public static void UnlockCommand(ChatCommandContext ctx, string playerName)
         {
@@ -90,10 +106,9 @@ namespace VCreate.Core.Commands
                 };
 
                 Helper.UnlockVBloods(fromCharacter);
-                
 
                 Helper.UnlockResearch(fromCharacter);
-                
+
                 Helper.UnlockAchievements(fromCharacter);
             }
             catch (Exception ex)
@@ -127,14 +142,12 @@ namespace VCreate.Core.Commands
 
             ctx.Reply($"Got {i} Blood Potion(s) Type <color=#ff0>{type}</color> with <color=#ff0>{quality}</color>% quality");
         }
+
         [Command(name: "ping", shortHand: "!", adminOnly: false, usage: ".!", description: "Displays user ping.")]
         public static void PingCommand(ChatCommandContext ctx)
         {
             var ping = (int)(ctx.Event.SenderCharacterEntity.Read<Latency>().Value * 1000);
             ctx.Reply($"Your latency is <color=#ffff00>{ping}</color>ms");
         }
-        
-       
-        
     }
 }

@@ -64,34 +64,45 @@ internal class EmoteSystemPatch
     public static void OnUpdate_Emote(ProjectM.EmoteSystem __instance)
     {
         var _entities = __instance.__UseEmoteJob_entityQuery.ToEntityArray(Allocator.Temp);
-
-        foreach (var _entity in _entities)
+        try
         {
-            var _event = _entity.Read<UseEmoteEvent>();
-            var _from = _entity.Read<FromCharacter>();
-
-            Player _player = new Player(_from.User);
-            ulong _playerId = _player.SteamID;
-            if (DataStructures.PlayerSettings.TryGetValue(_playerId, out Omnitool data) && data.Emotes)
+            foreach (var _entity in _entities)
             {
-                index = data.Build ? 0 : 1; // if active index is 1 for building emotes, if inactive index is 0 for familiar emotes
-                if (emoteActionsArray[index].TryGetValue(_event.Action.GuidHash, out var action))
+                var _event = _entity.Read<UseEmoteEvent>();
+                var _from = _entity.Read<FromCharacter>();
+
+                Player _player = new(_from.User);
+                ulong _playerId = _player.SteamID;
+                if (DataStructures.PlayerSettings.TryGetValue(_playerId, out Omnitool data) && data.Emotes)
                 {
-                    // Execute the associated action
-                    action.Invoke(_player, _playerId);
+                    index = data.Build ? 0 : 1; // if active index is 1 for building emotes, if inactive index is 0 for familiar emotes
+                    if (emoteActionsArray[index].TryGetValue(_event.Action.GuidHash, out var action))
+                    {
+                        // Execute the associated action
+                        action.Invoke(_player, _playerId);
+                    }
+                }
+                else
+                {
+                    continue;
                 }
             }
-            else
-            {
-                return;
-            }
         }
+        catch (Exception ex)
+        {
+            // Log or handle the error as needed
+            Plugin.Log.LogInfo(ex.Message);
+        }
+        finally
+        {
+            _entities.Dispose();
+        }
+        
 
-        _entities.Dispose();
     }
 
-    [Command(name: "toggleFamiliar", shortHand: "toggle", usage: ".toggle", description: "Calls or dismisses familar.", adminOnly: false)]
-    private static void CallDismiss(Player player, ulong playerId)
+    
+    public static void CallDismiss(Player player, ulong playerId)
     {
         EntityManager entityManager = VWorld.Server.EntityManager;
         ulong platformId = playerId;
@@ -181,21 +192,13 @@ internal class EmoteSystemPatch
             ServerChatUtils.SendSystemMessageToClient(entityCommandBuffer, player.User.Read<User>(), "No bound familiar to summon.");
         }
     }
-
-    private static void ToggleCombat(Player player, ulong playerId)
+    public static void ToggleCombat(Player player, ulong playerId)
     {
         EntityCommandBufferSystem entityCommandBufferSystem = VWorld.Server.GetExistingSystem<EntityCommandBufferSystem>();
         EntityCommandBuffer entityCommandBuffer = entityCommandBufferSystem.CreateCommandBuffer();
         ulong platformId = player.SteamID;
         var buffs = player.Character.ReadBuffer<BuffBuffer>();
-        foreach (var buff in buffs)
-        {
-            if (buff.PrefabGuid.GuidHash == VCreate.Data.Prefabs.Buff_InCombat.GuidHash)
-            {
-                ServerChatUtils.SendSystemMessageToClient(entityCommandBuffer, player.User.Read<User>(), "You cannot toggle combat mode during combat.");
-                return;
-            }
-        }
+        
         if (DataStructures.PlayerPetsMap.TryGetValue(platformId, out Dictionary<string, PetExperienceProfile> data))
         {
             ServerGameManager serverGameManager = VWorld.Server.GetExistingSystem<ServerScriptMapper>()._ServerGameManager;
@@ -204,10 +207,10 @@ internal class EmoteSystemPatch
             Entity familiar = FindPlayerFamiliar(player.Character);
             if (familiar.Equals(Entity.Null))
             {
-                ServerChatUtils.SendSystemMessageToClient(entityCommandBuffer, player.User.Read<User>(), "Summon your familiar before toggling this.");
+                ServerChatUtils.SendSystemMessageToClient(entityCommandBuffer, player.User.Read<User>(), "Call your familiar before toggling this.");
                 return;
             }
-            if (data.TryGetValue(familiar.Read<PrefabGUID>().LookupName().ToString(), out PetExperienceProfile profile) && profile.Active)
+            else if (data.TryGetValue(familiar.Read<PrefabGUID>().LookupName().ToString(), out PetExperienceProfile profile) && profile.Active)
             {
                 profile.Combat = !profile.Combat; // this will be false when first triggered
                 FactionReference factionReference = familiar.Read<FactionReference>();
@@ -268,6 +271,11 @@ internal class EmoteSystemPatch
                     ServerChatUtils.SendSystemMessageToClient(entityCommandBuffer, player.User.Read<User>(), $"Combat for familiar is {enabledColor}. It will fight till glory or death and gain experience.");
                 }
             }
+            else
+            {
+                ServerChatUtils.SendSystemMessageToClient(entityCommandBuffer, player.User.Read<User>(), "Couldn't find active familiar in followers.");
+            }
+
         }
         else
         {
