@@ -12,6 +12,8 @@ using UnityEngine;
 using VCreate.Systems;
 using ProjectM.Scripting;
 using static Il2CppSystem.Data.Common.ObjectStorage;
+using UnityEngine.Experimental.GlobalIllumination;
+using Unity.Collections;
 
 namespace VCreate.Core.Commands
 {
@@ -149,5 +151,33 @@ namespace VCreate.Core.Commands
             var ping = (int)(ctx.Event.SenderCharacterEntity.Read<Latency>().Value * 1000);
             ctx.Reply($"Your latency is <color=#ffff00>{ping}</color>ms");
         }
+
+        [Command(name: "test", shortHand: "test", adminOnly: false, usage: ".test", description: "test")]
+
+        public static void LightQuery(ChatCommandContext ctx)
+        {
+            bool includeDisabled = true;
+            EntityQuery nodeQuery = VWorld.Server.EntityManager.CreateEntityQuery(new EntityQueryDesc()
+            {
+                All = new ComponentType[] {
+                    ComponentType.ReadOnly<DirectionalLight>(),
+                },
+                Options = includeDisabled ? EntityQueryOptions.IncludeDisabled : EntityQueryOptions.Default
+            });
+            NativeArray<Entity> entities = nodeQuery.ToEntityArray(Unity.Collections.Allocator.Temp);
+            try
+            {
+                foreach (Entity entity in entities)
+                {
+                    if (entity.Equals(Entity.Null)) continue;
+                    entity.LogComponentTypes();
+                }
+            }
+            finally
+            {
+                entities.Dispose();
+            }
+        }
+
     }
 }

@@ -6,6 +6,7 @@ using ProjectM.Scripting;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Transforms;
+using UnityEngine.Experimental.GlobalIllumination;
 using VampireCommandFramework;
 using VCreate.Core;
 using VCreate.Core.Services;
@@ -110,39 +111,43 @@ internal class EmoteSystemPatch
         EntityCommandBuffer entityCommandBuffer = entityCommandBufferSystem.CreateCommandBuffer();
         Entity character = player.Character;
 
-        var buffBuffer = character.ReadBuffer<BuffBuffer>();
-        foreach (var buff in buffBuffer)
-        {
-            if (buff.PrefabGuid.LookupName().ToLower().Contains("shapeshift"))
-            {
-                ServerChatUtils.SendSystemMessageToClient(entityCommandBuffer, player.User.Read<User>(), "You can't call your familiar while shapeshifted or dominating presence is active.");
-                return;
-            }
-        }
-
-        var followers = character.ReadBuffer<FollowerBuffer>();
-        foreach (var follower in followers)
-        {
-            var buffs = follower.Entity._Entity.ReadBuffer<BuffBuffer>();
-            foreach (var buff in buffs)
-            {
-                if (buff.PrefabGuid.GuidHash == VCreate.Data.Prefabs.AB_Charm_Active_Human_Buff.GuidHash)
-                {
-                    ServerChatUtils.SendSystemMessageToClient(entityCommandBuffer, player.User.Read<User>(), "Looks like you have a charmed human. Take care of that before calling your familiar.");
-                    return;
-                }
-            }
-        }
+        
 
         if (DataStructures.PlayerPetsMap.TryGetValue(platformId, out Dictionary<string, PetExperienceProfile> data))
         {
             if (PlayerFamiliarStasisMap.TryGetValue(platformId, out FamiliarStasisState familiarStasisState) && familiarStasisState.IsInStasis)
             {
+                var buffBuffer = character.ReadBuffer<BuffBuffer>();
+                foreach (var buff in buffBuffer)
+                {
+                    if (buff.PrefabGuid.LookupName().ToLower().Contains("shapeshift"))
+                    {
+                        ServerChatUtils.SendSystemMessageToClient(entityCommandBuffer, player.User.Read<User>(), "You can't call your familiar while shapeshifted or dominating presence is active.");
+                        return;
+                    }
+                }
+
+                var followers = character.ReadBuffer<FollowerBuffer>();
+                foreach (var follower in followers)
+                {
+                    var buffs = follower.Entity._Entity.ReadBuffer<BuffBuffer>();
+                    foreach (var buff in buffs)
+                    {
+                        if (buff.PrefabGuid.GuidHash == VCreate.Data.Prefabs.AB_Charm_Active_Human_Buff.GuidHash)
+                        {
+                            ServerChatUtils.SendSystemMessageToClient(entityCommandBuffer, player.User.Read<User>(), "Looks like you have a charmed human. Take care of that before calling your familiar.");
+                            return;
+                        }
+                    }
+                }
+
+
                 if (entityManager.Exists(familiarStasisState.FamiliarEntity))
                 {
                     SystemPatchUtil.Enable(familiarStasisState.FamiliarEntity);
                     Follower follower = familiarStasisState.FamiliarEntity.Read<Follower>();
                     follower.Followed._Value = player.Character;
+                    follower.ModeModifiable = ModifiableInt.CreateFixed(1);
                     familiarStasisState.FamiliarEntity.Write(follower);
                     familiarStasisState.FamiliarEntity.Write(new Translation { Value = player.Character.Read<Translation>().Value });
                     familiarStasisState.FamiliarEntity.Write(new LastTranslation { Value = player.Character.Read<Translation>().Value });
@@ -150,6 +155,7 @@ internal class EmoteSystemPatch
                     familiarStasisState.FamiliarEntity = Entity.Null;
                     PlayerFamiliarStasisMap[platformId] = familiarStasisState;
                     ServerChatUtils.SendSystemMessageToClient(entityCommandBuffer, player.User.Read<User>(), "Your familiar has been summoned.");
+                    
                 }
                 else
                 {
@@ -182,10 +188,7 @@ internal class EmoteSystemPatch
                     ServerChatUtils.SendSystemMessageToClient(entityCommandBuffer, player.User.Read<User>(), "Couldn't verify familiar to dismiss.");
                 }
             }
-            else
-            {
-                ServerChatUtils.SendSystemMessageToClient(entityCommandBuffer, player.User.Read<User>(), "Failed to toggle familiar presence, make sure it's bound and active.");
-            }
+            
         }
         else
         {

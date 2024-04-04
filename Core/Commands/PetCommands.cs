@@ -238,7 +238,7 @@ namespace VCreate.Core.Commands
             }
             if (PlayerFamiliarStasisMap.TryGetValue(platformId, out var familiarStasisState) && familiarStasisState.IsInStasis)
             {
-                ctx.Reply("You have a familiar in stasis. If you want to bind to another, summon it and unbind first.");
+                ctx.Reply("You have a familiar in stasis. If you want to bind to another, call it and unbind first.");
                 return;
             }
             bool flag = false;

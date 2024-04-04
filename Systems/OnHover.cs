@@ -253,6 +253,7 @@ namespace VCreate.Systems
             ModifiableEntity modifiableEntity = ModifiableEntity.CreateFixed(character);
             Follower follower = familiar.Read<Follower>();
             follower.Followed = modifiableEntity;
+            follower.ModeModifiable = ModifiableInt.CreateFixed(1);
             if (Utilities.HasComponent<BloodConsumeSource>(familiar))
             {
                 BloodConsumeSource bloodConsumeSource = familiar.Read<BloodConsumeSource>();
@@ -302,7 +303,7 @@ namespace VCreate.Systems
             DynamicCollision dynamicCollision = familiar.Read<DynamicCollision>();
             dynamicCollision.AgainstPlayers.RadiusOverride = 0.5f;
             familiar.Write(dynamicCollision);
-            
+            /*
             if (!familiar.Has<AttachMapIconsToEntity>())
             {
                 entityManager.AddBuffer<AttachMapIconsToEntity>(familiar).Add(new AttachMapIconsToEntity { Prefab = VCreate.Data.Prefabs.MapIcon_CastleWaypoint_Active });
@@ -311,7 +312,7 @@ namespace VCreate.Systems
             {
                 entityManager.GetBuffer<AttachMapIconsToEntity>(familiar).Add(new AttachMapIconsToEntity { Prefab = VCreate.Data.Prefabs.MapIcon_CastleWaypoint_Active });
             }
-            
+            */
             
           
 

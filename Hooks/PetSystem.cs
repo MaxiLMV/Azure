@@ -203,9 +203,9 @@ namespace VCreate.Hooks
                     {FocusToStatMap.StatType.MaxHealth, 5000f},
                     {FocusToStatMap.StatType.AttackSpeed, 2f},
                     {FocusToStatMap.StatType.PrimaryAttackSpeed, 2f},
-                    {FocusToStatMap.StatType.Power, 100f},
+                    {FocusToStatMap.StatType.Power, 125f},
                     {FocusToStatMap.StatType.CriticalChance, 0.75f},
-                    {FocusToStatMap.StatType.CriticalDamage, 2.5f},
+                    {FocusToStatMap.StatType.CriticalDamage, 3f},
                 };
             }
 
@@ -273,6 +273,7 @@ namespace VCreate.Hooks
                         if (unitStats.AttackSpeed._Value > cap)
                         {
                             unitStats.AttackSpeed._Value = cap;
+                            ServerChatUtils.SendSystemMessageToClient(entityManager, entity.Read<PlayerCharacter>().UserEntity.Read<User>(), "Cast speed can't go any higher!");
                         }
                         entity.Write(unitStats);
                         break;
@@ -282,6 +283,7 @@ namespace VCreate.Hooks
                         if (unitStats.PrimaryAttackSpeed._Value > cap)
                         {
                             unitStats.PrimaryAttackSpeed._Value = cap;
+                            ServerChatUtils.SendSystemMessageToClient(entityManager, entity.Read<PlayerCharacter>().UserEntity.Read<User>(), "Primary attack speed can't go any higher!");
                         }
                         entity.Write(unitStats);
                         break;
@@ -291,12 +293,14 @@ namespace VCreate.Hooks
                         if (unitStats.PhysicalPower._Value > cap)
                         {
                             unitStats.PhysicalPower._Value = cap;
+                            ServerChatUtils.SendSystemMessageToClient(entityManager, entity.Read<PlayerCharacter>().UserEntity.Read<User>(), "Power can't go any higher!");
                         }
                         entity.Write(unitStats);
                         unitStats.SpellPower._Value += increase;
                         if (unitStats.SpellPower._Value > cap)
                         {
                             unitStats.SpellPower._Value = cap;
+
                         }
                         entity.Write(unitStats);
                         break;
@@ -306,6 +310,7 @@ namespace VCreate.Hooks
                         if (unitStats.PhysicalCriticalStrikeChance._Value > cap)
                         {
                             unitStats.PhysicalCriticalStrikeChance._Value = cap;
+                            ServerChatUtils.SendSystemMessageToClient(entityManager, entity.Read<PlayerCharacter>().UserEntity.Read<User>(), "Critical chance can't go any higher!");
                         }
                         entity.Write(unitStats);
                         unitStats.SpellCriticalStrikeChance._Value += increase;
@@ -321,6 +326,7 @@ namespace VCreate.Hooks
                         if (unitStats.PhysicalCriticalStrikeDamage._Value > cap)
                         {
                             unitStats.PhysicalCriticalStrikeDamage._Value = cap;
+                            ServerChatUtils.SendSystemMessageToClient(entityManager, entity.Read<PlayerCharacter>().UserEntity.Read<User>(), "Critical damage can't go any higher!");
                         }
                         entity.Write(unitStats);
                         unitStats.SpellCriticalStrikeDamage._Value += increase;
@@ -342,15 +348,16 @@ namespace VCreate.Hooks
                 if (health.MaxHealth._Value > cap)
                 {
                     health.MaxHealth._Value = cap;
+                    ServerChatUtils.SendSystemMessageToClient(entityManager, entity.Read<PlayerCharacter>().UserEntity.Read<User>(), "Health can't go any higher!");
                 }
                 entity.Write(health);
             }
         }
-
+        
         public class UnitTokenSystem
         {
-            private static readonly float chance = 0.01f; // testing
-            private static readonly float vfactor = 2f; // DONT FORGET TO CHANGE THESE BACK, signed yourself
+            private static readonly float chance = 0.01f;
+            private static readonly float vfactor = 2f; 
             public static readonly Random Random = new();
 
             public class UnitToGemMapping
