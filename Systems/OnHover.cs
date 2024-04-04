@@ -347,6 +347,78 @@ namespace VCreate.Systems
                     // current pet profile, buff handling would probably go here
                     
                     data.TryGetValue(familiarFullName, out PetExperienceProfile profile);
+
+                    if (profile.Level == 0)
+                    {
+                        Plugin.Log.LogInfo("Resetting familiar profile...");
+                        if (DataStructures.PlayerSettings.TryGetValue(userEntity.Read<User>().PlatformId, out Omnitool omnitool) && omnitool.Shiny)
+                        {
+                            if (DataStructures.PetBuffMap.TryGetValue(userEntity.Read<User>().PlatformId, out var petBuffMap1))
+                            {
+                                if (petBuffMap1.TryGetValue(familiar.Read<PrefabGUID>().GuidHash, out var buffs))
+                                {
+
+                                    if (buffs.TryGetValue("Shiny", out HashSet<int> visuals))
+                                    {
+                                        foreach (int visual in visuals)
+                                        {
+                                            PrefabGUID prefabGUID = new(visual);
+                                            OnHover.BuffNonPlayer(familiar, prefabGUID);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        familiar.Write(new UnitLevel { Level = 0 });
+
+                        Health healthUnit = familiar.Read<Health>();
+                        healthUnit.MaxHealth = ModifiableFloat.CreateFixed(500f);
+                        healthUnit.Value = 500f;
+                        familiar.Write(healthUnit);
+
+                        UnitStats unitStats = familiar.Read<UnitStats>();
+
+                        unitStats.PhysicalPower = ModifiableFloat.CreateFixed(10f);
+                        unitStats.SpellPower = ModifiableFloat.CreateFixed(10f);
+                        unitStats.PhysicalCriticalStrikeChance._Value = 0.1f;
+                        unitStats.SpellCriticalStrikeChance._Value = 0.1f;
+                        unitStats.PhysicalCriticalStrikeDamage._Value = 1.5f;
+                        unitStats.SpellCriticalStrikeDamage._Value = 1.5f;
+                        unitStats.PassiveHealthRegen._Value = 0.01f;
+
+                        familiar.Write(unitStats);
+
+                        if (familiar.Has<DamageCategoryStats>())
+                        {
+                            DamageCategoryStats damageCategoryStats = familiar.Read<DamageCategoryStats>();
+                            damageCategoryStats.DamageVsPlayerVampires._Value = 0.1f;
+                            familiar.Write(damageCategoryStats);
+                        }
+
+                        
+                        UnitStats stats1 = familiar.Read<UnitStats>();
+                        UnitLevel level1 = familiar.Read<UnitLevel>();
+                        Health health1 = familiar.Read<Health>();
+                        float maxHealth = health1.MaxHealth._Value;
+                        float attackSpeed = stats1.AttackSpeed._Value;
+                        float primaryAttackSpeed = stats1.PrimaryAttackSpeed._Value;
+                        float physicalPower = stats1.PhysicalPower._Value;
+                        float spellPower = stats1.SpellPower._Value;
+                        float physicalCrit = stats1.PhysicalCriticalStrikeChance._Value;
+                        float physicalCritDmg = stats1.PhysicalCriticalStrikeDamage._Value;
+                        float spellCrit = stats1.SpellCriticalStrikeChance._Value;
+                        float spellCritDmg = stats1.SpellCriticalStrikeDamage._Value;
+                        profile.Level = level1.Level;
+                        profile.Stats.Clear();
+                        profile.Stats.AddRange([maxHealth, attackSpeed, primaryAttackSpeed, physicalPower, spellPower, physicalCrit, physicalCritDmg, spellCrit, spellCritDmg]);
+                        data[familiarFullName] = profile;
+                        DataStructures.PlayerPetsMap[userEntity.Read<User>().PlatformId] = data;
+                        DataStructures.SavePetExperience();
+                        Plugin.Log.LogInfo("Familiar profile reset.");
+                        return;
+                    }
+
                     if (DataStructures.PetBuffMap.TryGetValue(userEntity.Read<User>().PlatformId, out var petBuffMap))
                     {
                         if (petBuffMap.TryGetValue(familiar.Read<PrefabGUID>().GuidHash, out var buffs))

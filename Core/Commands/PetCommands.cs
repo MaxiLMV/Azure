@@ -112,7 +112,6 @@ namespace VCreate.Core.Commands
         }
 
         [Command(name: "resetFamiliarProfile", shortHand: "reset", adminOnly: false, usage: ".reset [#]", description: "Resets familiar profile, allowing it to level again.")]
-
         public static void ResetFam(ChatCommandContext ctx, int choice)
         {
             ulong platformId = ctx.User.PlatformId;
@@ -135,12 +134,12 @@ namespace VCreate.Core.Commands
                     {
                         if (data.TryGetValue(familiar.Read<PrefabGUID>().LookupName().ToString(), out PetExperienceProfile profile) && profile.Active)
                         {
-
-
-                            data[familiar.Read<PrefabGUID>().LookupName().ToString()] = new();
-                            DataStructures.PlayerPetsMap[platformId] = data;
+                            profile.Level = 0;
+                            profile.Stats.Clear();
+                            profile.Active = false;
                             DataStructures.SavePetExperience();
-                            ctx.Reply("Familiar profile reset. Unbind and rebind to complete.");
+                            SystemPatchUtil.Destroy(familiar);
+                            ctx.Reply("Profile reset, familiar unbound.");
                         }
                         else
                         {
@@ -344,8 +343,10 @@ namespace VCreate.Core.Commands
                             DataStructures.PlayerPetsMap[platformId] = data;
                             DataStructures.SavePetExperience();
                             ctx.Reply("Unable to locate familiar and not in stasis, assuming dead and unbinding.");
+                            return;
                         }
                     }
+                    ctx.Reply("Couldn't find active familiar in followers.");
                 }
                 else
                 {
@@ -465,7 +466,7 @@ namespace VCreate.Core.Commands
             }
         }
 
-        [Command(name: "chooseMaxBuff", shortHand: "max", adminOnly: false, usage: ".max [#]", description: "Chooses buff for familiar to receieve when summoned if at level 80.")]
+        [Command(name: "chooseMaxBuff", shortHand: "max", adminOnly: false, usage: ".max [#]", description: "Chooses buff for familiar to receieve when binding if at level 80.")]
         public static void ChooseMaxBuff(ChatCommandContext ctx, int choice)
         {
             ulong platformId = ctx.User.PlatformId;
@@ -483,6 +484,7 @@ namespace VCreate.Core.Commands
                 if (familiar.Equals(Entity.Null))
                 {
                     ctx.Reply("Make sure your familiar is present before setting this.");
+                    return;
                 }
                 if (data.TryGetValue(familiar.Read<PrefabGUID>().LookupName().ToString(), out PetExperienceProfile profile) && profile.Active)
                 {
@@ -535,17 +537,17 @@ namespace VCreate.Core.Commands
                     {
                         var stats = profile.Stats;
                         string maxhealth = White(stats[0].ToString());
-                        string attackspeed = White(stats[1].ToString());
-                        string primaryattackspeed = White(stats[2].ToString());
+                        string attackspeed = White(Math.Round(stats[1], 2).ToString());
+                        string primaryattackspeed = White(Math.Round(stats[2], 2).ToString());
                         string physicalpower = White(stats[3].ToString());
                         string spellpower = White(stats[4].ToString());
                         string physcritchance = White(stats[5].ToString());
                         string physcritdamage = White(stats[6].ToString());
                         string spellcritchance = White(stats[7].ToString());
                         string spellcritdamage = White(stats[8].ToString());
-                        string avgPower = White(((stats[3] + stats[4]) / 2).ToString());
-                        string avgCritChance = White(((stats[5] + stats[7]) / 2f).ToString());
-                        string avgCritDamage = White(((stats[6] + stats[8]) / 2f).ToString());
+                        string avgPower = White((Math.Round((stats[3] + stats[4]) / 2), 2).ToString());
+                        string avgCritChance = White((Math.Round((stats[5] + stats[7]) / 2f), 2).ToString());
+                        string avgCritDamage = White((Math.Round((stats[6] + stats[8]) / 2f), 2).ToString());
                         ctx.Reply($"Max Health: {maxhealth}, Cast Speed: {attackspeed}, Primary Attack Speed: {primaryattackspeed}, Power: {avgPower}, Critical Chance: {avgCritChance}, Critical Damage: {avgCritDamage}");
                         if (DataStructures.PetBuffMap.TryGetValue(platformId, out var keyValuePairs))
                         {
@@ -593,16 +595,16 @@ namespace VCreate.Core.Commands
                 ctx.Reply("Couldn't find active familiar in followers.");
             }
         }
-        [Command(name: "toggleFamiliar", shortHand: "toggle", usage: ".toggle", description: "Calls or dismisses familar.", adminOnly: false)]
 
+        [Command(name: "toggleFamiliar", shortHand: "toggle", usage: ".toggle", description: "Calls or dismisses familar.", adminOnly: false)]
         public static void ToggleFam(ChatCommandContext ctx)
         {
             ulong platformId = ctx.User.PlatformId;
             if (!Services.PlayerService.TryGetPlayerFromString(ctx.Event.User.CharacterName.ToString(), out var player)) return;
             VCreate.Hooks.EmoteSystemPatch.CallDismiss(player, platformId);
         }
-        [Command(name: "combatModeToggle", shortHand: "combat", adminOnly: false, usage: ".combat", description: "Toggles combat mode for familiar.")]
 
+        [Command(name: "combatModeToggle", shortHand: "combat", adminOnly: false, usage: ".combat", description: "Toggles combat mode for familiar.")]
         public static void CombatModeToggle(ChatCommandContext ctx)
         {
             ulong platformId = ctx.User.PlatformId;
@@ -611,7 +613,6 @@ namespace VCreate.Core.Commands
         }
 
         [Command(name: "shinyToggle", shortHand: "shiny", adminOnly: false, usage: ".shiny", description: "Toggles shiny buff for familiar if unlocked.")]
-
         public static void ShinyToggle(ChatCommandContext ctx)
         {
             ulong platformId = ctx.User.PlatformId;
@@ -629,7 +630,6 @@ namespace VCreate.Core.Commands
                     settings.Shiny = true;
                     DataStructures.SavePlayerSettings();
                     ctx.Reply("Shiny buff enabled.");
-                
                 }
             }
             else
@@ -637,12 +637,13 @@ namespace VCreate.Core.Commands
                 ctx.Reply("Couldn't find data to toggle shiny.");
             }
         }
+
         /*
         public static void MethodFive(ChatCommandContext ctx)
         {
             ulong platformId = ctx.User.PlatformId;
             var buffs = ctx.Event.SenderCharacterEntity.ReadBuffer<BuffBuffer>();
-            
+
             foreach (var buff in buffs)
             {
                 if (buff.PrefabGuid.GuidHash == VCreate.Data.Prefabs.Buff_InCombat.GuidHash)
@@ -651,7 +652,7 @@ namespace VCreate.Core.Commands
                     return;
                 }
             }
-            
+
             if (DataStructures.PlayerPetsMap.TryGetValue(platformId, out Dictionary<string, PetExperienceProfile> data))
             {
                 ServerGameManager serverGameManager = VWorld.Server.GetExistingSystem<ServerScriptMapper>()._ServerGameManager;
@@ -739,6 +740,7 @@ namespace VCreate.Core.Commands
             }
         }
         */
+
         internal struct FamiliarStasisState
         {
             public Entity FamiliarEntity;

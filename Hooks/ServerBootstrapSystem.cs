@@ -20,6 +20,7 @@ namespace VCreate.Hooks
     [HarmonyPatch]
     public class ServerBootstrapPatches
     {
+        private static bool flag = false;
         [HarmonyPatch(typeof(ServerBootstrapSystem), nameof(ServerBootstrapSystem.OnUserConnected))]
         [HarmonyPrefix]
         private static unsafe void OnUserConnectedPrefix(ServerBootstrapSystem __instance, NetConnectionId netConnectionId)
@@ -63,6 +64,13 @@ namespace VCreate.Hooks
 
             }
             */
+            if (!flag)
+            {
+                VCreate.Core.Commands.CastleHeartConnectionToggle.ToggleCastleHeartConnectionCommandOnConnected(userEntity);
+                VCreate.Core.Commands.CastleHeartConnectionToggle.ToggleCastleHeartConnectionCommandOnConnected(userEntity);
+                flag = true;
+            }
+            
 
         }
         [HarmonyPatch(typeof(ServerBootstrapSystem), nameof(ServerBootstrapSystem.OnUserDisconnected))]

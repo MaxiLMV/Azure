@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using VampireCommandFramework;
 using VCreate.Core.Toolbox;
+using Unity.Entities;
 
 namespace VCreate.Core.Commands
 {
@@ -127,6 +128,17 @@ namespace VCreate.Core.Commands
             string toggleColor = castleHeartConnectionRequirementFlag ? FontColors.Green("enabled") : FontColors.Red("disabled");
             ctx.Reply($"Castle Heart connection requirement {toggleColor}");
             ctx.Reply($"CastleHeartConnectionRequirementDisabled: {CastleHeartConnectionDebugSetting.Value}");
+        }
+        public static void ToggleCastleHeartConnectionCommandOnConnected(Entity userEntity)
+        {
+            User user = userEntity.Read<User>();
+
+            DebugEventsSystem existingSystem = VWorld.Server.GetExistingSystem<DebugEventsSystem>();
+            castleHeartConnectionRequirementFlag = !castleHeartConnectionRequirementFlag; // Toggle the flag
+
+            CastleHeartConnectionDebugSetting.Value = castleHeartConnectionRequirementFlag;
+            existingSystem.SetDebugSetting(user.Index, ref CastleHeartConnectionDebugSetting);
+
         }
     }
 }
