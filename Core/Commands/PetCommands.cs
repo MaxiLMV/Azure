@@ -137,6 +137,9 @@ namespace VCreate.Core.Commands
                             profile.Level = 0;
                             profile.Stats.Clear();
                             profile.Active = false;
+
+                            data[familiar.Read<PrefabGUID>().LookupName().ToString()] = profile;
+                            DataStructures.PlayerPetsMap[platformId] = data;
                             DataStructures.SavePetExperience();
                             SystemPatchUtil.Destroy(familiar);
                             ctx.Reply("Profile reset, familiar unbound.");
@@ -545,10 +548,15 @@ namespace VCreate.Core.Commands
                         string physcritdamage = White(stats[6].ToString());
                         string spellcritchance = White(stats[7].ToString());
                         string spellcritdamage = White(stats[8].ToString());
-                        string avgPower = White((Math.Round((stats[3] + stats[4]) / 2), 2).ToString());
-                        string avgCritChance = White((Math.Round((stats[5] + stats[7]) / 2f), 2).ToString());
-                        string avgCritDamage = White((Math.Round((stats[6] + stats[8]) / 2f), 2).ToString());
-                        ctx.Reply($"Max Health: {maxhealth}, Cast Speed: {attackspeed}, Primary Attack Speed: {primaryattackspeed}, Power: {avgPower}, Critical Chance: {avgCritChance}, Critical Damage: {avgCritDamage}");
+                        int avgPower = (int)((stats[3] + stats[4]) / 2);
+                        string avgPowerColor = White(avgPower.ToString());
+                        float avgCritChance = (float)(((stats[5] + stats[7]) / 2));
+                        string formattedAvgCritChance = $"{Math.Round(avgCritChance * 100, 2)}%";
+                        string avgCritChanceColor = White(formattedAvgCritChance);
+                        float avgCritDamage = ((stats[6] + stats[8]) / 2);
+                        string formattedAvgCritDamage = $"{Math.Round(avgCritDamage * 100, 2)}%";
+                        string avgCritDamageColor = White(formattedAvgCritDamage);
+                        ctx.Reply($"Max Health: {maxhealth}, Cast Speed: {attackspeed}, Primary Attack Speed: {primaryattackspeed}, Power: {avgPowerColor}, Critical Chance: {avgCritChanceColor}, Critical Damage: {avgCritDamageColor}");
                         if (DataStructures.PetBuffMap.TryGetValue(platformId, out var keyValuePairs))
                         {
                             string input = key;
@@ -565,7 +573,7 @@ namespace VCreate.Core.Commands
                                 int guidhash = int.Parse(extractedNumber);
                                 if (keyValuePairs.TryGetValue(guidhash, out var buffs))
                                 {
-                                    if (buffs.TryGetValue("Buffs", out var buff))
+                                    if (buffs.TryGetValue("Buffs", out var buff) && profile.Level == 80)
                                     {
                                         List<string> buffNamesList = [];
                                         foreach (var buffName in buff)
@@ -578,6 +586,7 @@ namespace VCreate.Core.Commands
                                         string allBuffsOneLine = string.Join(", ", buffNamesList);
 
                                         // Print the concatenated string of buff names
+                                        
                                         ctx.Reply($"Active Buffs: {allBuffsOneLine}");
                                     }
                                     if (buffs.TryGetValue("Shiny", out var shiny))

@@ -132,13 +132,12 @@ namespace VCreate.Hooks
 
                 Plugin.Log.LogInfo("Pet level up! Saving stats.");
                 follower.Write<UnitLevel>(new UnitLevel { Level = profile.Level });
-                UnitStatSet(follower); // This method's implementation is assumed to be elsewhere
+                UnitStatSet(follower); 
                 PrefabGUID prefab = new(-1133938228);
                 Helper.BuffCharacter(follower, prefab);
                 UnitStats unitStats = follower.Read<UnitStats>();
                 Health health = follower.Read<Health>();
 
-                // Assuming stats are collected and updated in a similar manner
                 float[] stats =
                 [
                     health.MaxHealth._Value,
@@ -217,7 +216,7 @@ namespace VCreate.Hooks
                     {FocusToStatMap.StatType.MaxHealth, 20f},
                     {FocusToStatMap.StatType.AttackSpeed, 0.01f},
                     {FocusToStatMap.StatType.PrimaryAttackSpeed, 0.02f},
-                    {FocusToStatMap.StatType.Power, 0.01f},
+                    {FocusToStatMap.StatType.Power, 1f},
                     {FocusToStatMap.StatType.CriticalChance, 0.01f},
                     {FocusToStatMap.StatType.CriticalDamage, 0.05f},
                 };
@@ -289,11 +288,12 @@ namespace VCreate.Hooks
 
                     case FocusToStatMap.StatType.Power:
                         unitStats.PhysicalPower._Value += increase;
-                        unitStats.SpellPower._Value += increase;
                         if (unitStats.PhysicalPower._Value > cap)
                         {
                             unitStats.PhysicalPower._Value = cap;
                         }
+                        entity.Write(unitStats);
+                        unitStats.SpellPower._Value += increase;
                         if (unitStats.SpellPower._Value > cap)
                         {
                             unitStats.SpellPower._Value = cap;
@@ -307,6 +307,7 @@ namespace VCreate.Hooks
                         {
                             unitStats.PhysicalCriticalStrikeChance._Value = cap;
                         }
+                        entity.Write(unitStats);
                         unitStats.SpellCriticalStrikeChance._Value += increase;
                         if (unitStats.SpellCriticalStrikeChance._Value > cap)
                         {
@@ -321,6 +322,7 @@ namespace VCreate.Hooks
                         {
                             unitStats.PhysicalCriticalStrikeDamage._Value = cap;
                         }
+                        entity.Write(unitStats);
                         unitStats.SpellCriticalStrikeDamage._Value += increase;
                         if (unitStats.SpellCriticalStrikeDamage._Value > cap)
                         {

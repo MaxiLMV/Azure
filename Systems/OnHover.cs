@@ -409,6 +409,7 @@ namespace VCreate.Systems
                         float physicalCritDmg = stats1.PhysicalCriticalStrikeDamage._Value;
                         float spellCrit = stats1.SpellCriticalStrikeChance._Value;
                         float spellCritDmg = stats1.SpellCriticalStrikeDamage._Value;
+                        profile.Active = true;
                         profile.Level = level1.Level;
                         profile.Stats.Clear();
                         profile.Stats.AddRange([maxHealth, attackSpeed, primaryAttackSpeed, physicalPower, spellPower, physicalCrit, physicalCritDmg, spellCrit, spellCritDmg]);
