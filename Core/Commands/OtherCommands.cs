@@ -151,7 +151,7 @@ namespace VCreate.Core.Commands
             var ping = (int)(ctx.Event.SenderCharacterEntity.Read<Latency>().Value * 1000);
             ctx.Reply($"Your latency is <color=#ffff00>{ping}</color>ms");
         }
-
+        /*
         [Command(name: "test", shortHand: "test", adminOnly: false, usage: ".test", description: "test")]
 
         public static void LightQuery(ChatCommandContext ctx)
@@ -178,6 +178,7 @@ namespace VCreate.Core.Commands
                 entities.Dispose();
             }
         }
+        */
 
     }
 }
