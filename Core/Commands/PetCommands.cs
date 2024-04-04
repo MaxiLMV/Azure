@@ -24,6 +24,19 @@ namespace VCreate.Core.Commands
         public static void MethodMinusOne(ChatCommandContext ctx, int choice)
         {
             ulong platformId = ctx.User.PlatformId;
+            if (DataStructures.PlayerPetsMap.TryGetValue(platformId, out var map))
+            {
+                var profiles = map.Values;
+
+                foreach (var profile in profiles)
+                {
+                    if (profile.Active)
+                    {
+                        ctx.Reply("You have an active familiar. Unbind it before setting another.");
+                        return;
+                    }
+                }
+            }
             if (DataStructures.UnlockedPets.TryGetValue(platformId, out var data))
             {
                 if (choice < 1 || choice > data.Count)

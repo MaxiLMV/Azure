@@ -301,6 +301,7 @@ namespace VCreate.Systems
 
             DynamicCollision dynamicCollision = familiar.Read<DynamicCollision>();
             dynamicCollision.AgainstPlayers.RadiusOverride = -1f;
+            dynamicCollision.AgainstUnits.RadiusOverride = -1f;
             familiar.Write(dynamicCollision);
 
             if (!familiar.Has<AttachMapIconsToEntity>())

@@ -22,9 +22,10 @@ public static class FollowerSystemPatchV2
 
     public static void Prefix(FollowerSystem __instance)
     {
+        EntityManager entityManager = VWorld.Server.EntityManager;
         ServerGameManager serverGameManager = VWorld.Server.GetExistingSystem<ServerScriptMapper>()._ServerGameManager;
         BuffUtility.BuffSpawner buffSpawner = BuffUtility.BuffSpawner.Create(serverGameManager);
-        
+
         EntityCommandBufferSystem entityCommandBufferSystem = VWorld.Server.GetExistingSystem<EntityCommandBufferSystem>();
         EntityCommandBuffer entityCommandBuffer = entityCommandBufferSystem.CreateCommandBuffer();
 
@@ -33,22 +34,21 @@ public static class FollowerSystemPatchV2
         {
             foreach (Entity entity in entities)
             {
+                Follower follower = entity.Read<Follower>();
+                Entity followed = follower.Followed._Value;
+                if (!followed.Has<PlayerCharacter>()) continue;
+
                 var buffer = entity.ReadBuffer<BuffBuffer>();
                 foreach (var buff in buffer)
                 {
                     if (buff.PrefabGuid.GuidHash.Equals(charm.GuidHash))
                     {
-                        Follower follower = entity.Read<Follower>();
-                        Entity followed = follower.Followed._Value;
-                        if (!followed.Has<PlayerCharacter>()) continue;
-                        
                         Entity userEntity = followed.Read<PlayerCharacter>().UserEntity;
 
                         int check = entity.Read<PrefabGUID>().GuidHash;
                         ulong steamId = userEntity.Read<User>().PlatformId;
                         if (DataStructures.PlayerSettings.TryGetValue(steamId, out var dataset))
                         {
-                            
                             if (!dataset.Familiar.Equals(check) || !dataset.Binding)
                             {
                                 //Plugin.Log.LogInfo("Failed set familiar check or no binding flag and not entity creator, returning.");
@@ -59,14 +59,37 @@ public static class FollowerSystemPatchV2
                                 Plugin.Log.LogInfo("Found unbound/inactive, set familiar, removing charm and binding...");
 
                                 BuffUtility.TryRemoveBuff(ref buffSpawner, entityCommandBuffer, charm, entity);
-                                
+
                                 OnHover.ConvertCharacter(userEntity, entity);
 
                                 continue;
                             }
-                            
                         }
-                    }
+                    } //handle binding familiars, ignore charmed humans
+                    
+                }
+                ulong followedSteamId = followed.Read<PlayerCharacter>().UserEntity.Read<User>().PlatformId;
+                if (DataStructures.PlayerSettings.TryGetValue(followedSteamId, out var omnitool))
+                {
+                    PrefabGUID prefabGUID = entity.Read<PrefabGUID>();
+                    if (!omnitool.Familiar.Equals(prefabGUID.GuidHash)) continue;
+                }
+                // if player being followed is pvp protected give it to familiar, if not take it away if present
+                bool toCheck = BuffUtility.TryGetBuff(followed, VCreate.Data.Buffs.Buff_General_PvPProtected, entityManager.GetBufferFromEntity<BuffBuffer>(true), out var data);
+                if (toCheck)
+                {
+                    // give buff to familiar
+                    bool familiarCheck = BuffUtility.TryGetBuff(entity, VCreate.Data.Buffs.Buff_General_PvPProtected, entityManager.GetBufferFromEntity<BuffBuffer>(true), out var familiarData);
+                    if (familiarCheck) continue;
+                    OnHover.BuffNonPlayer(entity, VCreate.Data.Buffs.Buff_General_PvPProtected);
+                }
+                else
+                {
+                    // remove buff from familiar
+                    bool familiarCheck = BuffUtility.TryGetBuff(entity, VCreate.Data.Buffs.Buff_General_PvPProtected, entityManager.GetBufferFromEntity<BuffBuffer>(true), out var familiarData);
+                    if (!familiarCheck) continue;
+                    BuffUtility.TryRemoveBuff(ref buffSpawner, entityCommandBuffer, VCreate.Data.Buffs.Buff_General_PvPProtected, entity);
+                
                 }
             }
         }
