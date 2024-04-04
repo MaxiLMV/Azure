@@ -881,6 +881,29 @@ namespace VPlus.Core.Commands
             }
         }
 
+        [Command(name: "giveAscensionRequirements", shortHand: "givereq", adminOnly: true, usage: ".givereq", description: "Gives items required for next level of ascension.")]
+        public static void GiveAscendRequirementsCommand(ChatCommandContext ctx)
+        {
+            if (Plugin.PlayerAscension == false)
+            {
+                ctx.Reply("Ascension is disabled.");
+                return;
+            }
+            var user = ctx.Event.User;
+
+            string name = user.CharacterName.ToString();
+            ulong SteamID = user.PlatformId;
+            string StringID = SteamID.ToString();
+            if (Databases.playerDivinity.TryGetValue(SteamID, out DivineData data))
+            {
+                GiveItemsForAscLevel(ctx, name, SteamID, data);
+            }
+            else
+            {
+                ctx.Reply("Couldn't find ascension data.");
+            }
+        }
+
         [Command(name: "wipePlayerAscension", shortHand: "wpa", adminOnly: true, usage: ".wpa [Player]", description: "Resets player ascension level and removes powerup stats.")]
         public static void WipePlayerAscension(ChatCommandContext ctx, string name)
         {
@@ -968,7 +991,55 @@ namespace VPlus.Core.Commands
             }
         }
 
-      
+        public static void GiveItemsForAscLevel(ChatCommandContext ctx, string playerName, ulong SteamID, DivineData data)
+        {
+            AscensionLevel ascensionLevel = (AscensionLevel)(data.Divinity);
+            List<int> prefabIds;
+
+            // Determine the prefab IDs based on the ascension level
+            switch (ascensionLevel)
+            {
+                case AscensionLevel.Level0:
+                    prefabIds = ParsePrefabIdentifiers(Plugin.ItemPrefabsFirstAscension);
+                    break;
+
+                case AscensionLevel.Level1:
+                    prefabIds = ParsePrefabIdentifiers(Plugin.ItemPrefabsSecondAscension);
+                    break;
+
+                case AscensionLevel.Level2:
+                    prefabIds = ParsePrefabIdentifiers(Plugin.ItemPrefabsThirdAscension);
+                    break;
+
+                case AscensionLevel.Level3:
+                    prefabIds = ParsePrefabIdentifiers(Plugin.ItemPrefabsFourthAscension);
+                    break;
+
+                case AscensionLevel.Level4:
+                    ctx.Reply("You have reached the maximum ascension level.");
+                    return;
+
+                default:
+                    prefabIds = ParsePrefabIdentifiers(Plugin.ItemPrefabsFirstAscension);
+                    break;
+            }
+
+            for (int i = 0; i < prefabIds.Count; i++)
+            {
+                if (prefabIds[i] == 0)
+                {
+                    continue;
+                }
+                PrefabGUID prefab = new(prefabIds[i]);
+                int quantity = i + 1;
+                UserModel userModel = VRising.GameData.GameData.Users.GetUserByPlatformId(SteamID);
+                userModel.TryGiveItem(prefab, quantity, out var _);
+                //string name = VPlus.Core.Toolbox.FontColors.White(prefab.GetPrefabName());
+                //string quantity = VPlus.Core.Toolbox.FontColors.Yellow((i + 1).ToString());
+            }
+        }
+
+
 
         public static Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppReferenceArray<UnityEngine.Object> FindAllObjects()
         {
