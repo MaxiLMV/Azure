@@ -93,10 +93,14 @@ namespace VPlus.Hooks
                                         {
                                             // calculate points, should probably make this a method
                                             data.Points += GetPoints(playerLevel, unitLevel, component);
-                                            if (data.Points >= data.Rank * 1000 + 1000)
+                                            if (data.Points >= data.Rank * 1000 + 1000 && data.Rank != Plugin.MaxRanks)
                                             {
                                                 data.Points = data.Rank * 1000 + 1000;
-                                                ServerChatUtils.SendSystemMessageToClient(entityManager, component, "You've reached the maximum points for this rank! Don't forget to use .rankup");
+                                                ServerChatUtils.SendSystemMessageToClient(entityManager, component, "You've reached the maximum points for this rank! Don't forget to use .rankup to advance.");
+                                            }
+                                            else
+                                            {
+                                                data.Points += GetPoints(playerLevel, unitLevel, component);
                                             }
                                             ChatCommands.SavePlayerRanks();
                                             entities.Add(user);
