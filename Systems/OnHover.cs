@@ -306,11 +306,11 @@ namespace VCreate.Systems
 
             if (!familiar.Has<AttachMapIconsToEntity>())
             {
-                entityManager.AddBuffer<AttachMapIconsToEntity>(familiar).Add(new AttachMapIconsToEntity { Prefab = VCreate.Data.Prefabs.MapIcon_PlayerPathDot });
+                entityManager.AddBuffer<AttachMapIconsToEntity>(familiar).Add(new AttachMapIconsToEntity { Prefab = VCreate.Data.Prefabs.MapIcon_CastleWaypoint_Active });
             }
             else
             {
-                entityManager.GetBuffer<AttachMapIconsToEntity>(familiar).Add(new AttachMapIconsToEntity { Prefab = VCreate.Data.Prefabs.MapIcon_PlayerPathDot });
+                entityManager.GetBuffer<AttachMapIconsToEntity>(familiar).Add(new AttachMapIconsToEntity { Prefab = VCreate.Data.Prefabs.MapIcon_CastleWaypoint_Active });
             }
             
             
@@ -360,12 +360,22 @@ namespace VCreate.Systems
                                     OnHover.BuffNonPlayer(familiar, prefabGUID);
                                 }
                             }
-                            if (buffs.TryGetValue("Shiny", out HashSet<int> visuals))
+                            if (DataStructures.PlayerSettings.TryGetValue(userEntity.Read<User>().PlatformId, out Omnitool omnitool) && omnitool.Shiny)
                             {
-                                foreach (int visual in visuals)
+                                if (DataStructures.PetBuffMap.TryGetValue(userEntity.Read<User>().PlatformId, out var petbuffdata))
                                 {
-                                    PrefabGUID prefabGUID = new(visual);
-                                    OnHover.BuffNonPlayer(familiar, prefabGUID);
+                                    if (petbuffdata.TryGetValue(familiar.Read<PrefabGUID>().GuidHash, out var buffData))
+                                    {
+
+                                        if (buffData.TryGetValue("Shiny", out HashSet<int> visuals))
+                                        {
+                                            foreach (int visual in visuals)
+                                            {
+                                                PrefabGUID prefabGUID = new(visual);
+                                                OnHover.BuffNonPlayer(familiar, prefabGUID);
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -395,21 +405,25 @@ namespace VCreate.Systems
                 }
                 else
                 {
-                    if (DataStructures.PetBuffMap.TryGetValue(userEntity.Read<User>().PlatformId, out var petBuffMap))
+                    if (DataStructures.PlayerSettings.TryGetValue(userEntity.Read<User>().PlatformId, out Omnitool omnitool) && omnitool.Shiny)
                     {
-                        if (petBuffMap.TryGetValue(familiar.Read<PrefabGUID>().GuidHash, out var buffs))
+                        if (DataStructures.PetBuffMap.TryGetValue(userEntity.Read<User>().PlatformId, out var petBuffMap))
                         {
-                            
-                            if (buffs.TryGetValue("Shiny", out HashSet<int> visuals))
+                            if (petBuffMap.TryGetValue(familiar.Read<PrefabGUID>().GuidHash, out var buffs))
                             {
-                                foreach (int visual in visuals)
+
+                                if (buffs.TryGetValue("Shiny", out HashSet<int> visuals))
                                 {
-                                    PrefabGUID prefabGUID = new(visual);
-                                    OnHover.BuffNonPlayer(familiar, prefabGUID);
+                                    foreach (int visual in visuals)
+                                    {
+                                        PrefabGUID prefabGUID = new(visual);
+                                        OnHover.BuffNonPlayer(familiar, prefabGUID);
+                                    }
                                 }
                             }
                         }
                     }
+                    
                     // new pet profile would apply buff here if rolled
                     familiar.Write(new UnitLevel { Level = 0 });
 
