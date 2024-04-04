@@ -486,7 +486,7 @@ namespace VCreate.Core.Commands
                                     {
                                         continue;
                                     }
-                                    else if (entity.Read<CastleHeartConnection>().CastleHeartEntity._Entity.Equals(Entity.Null)) 
+                                    else if (entity.Read<CastleHeartConnection>().CastleHeartEntity._Entity.Equals(Entity.Null) || entity.Read<Team>().Value == 1) 
                                     {
                                         Team team = entity.Read<Team>();
                                         Team userTeam = ctx.Event.SenderCharacterEntity.Read<Team>();
@@ -500,7 +500,6 @@ namespace VCreate.Core.Commands
                                     }
                                     else
                                     {
-                                        //skip if already connected
                                         continue;
                                     }
                                     
