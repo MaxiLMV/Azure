@@ -8,6 +8,7 @@ using ProjectM.Shared.Systems;
 using Stunlock.Network;
 using Unity.Collections;
 using Unity.Entities;
+using Unity.Mathematics;
 using Unity.Transforms;
 using VCreate.Core;
 using VCreate.Core.Toolbox;
@@ -102,7 +103,7 @@ public static class BehaviourTreeStateChangedEventSystemPatch
                             if (buff.PrefabGuid.GuidHash == VCreate.Data.Prefabs.Buff_General_PvPProtected.GuidHash)
                             {
                                 BehaviourTreeState behaviourTreeStateChangedEvent = entity.Read<BehaviourTreeState>();
-                                behaviourTreeStateChangedEvent.Value = GenericEnemyState.Return;
+                                behaviourTreeStateChangedEvent.Value = GenericEnemyState.Follow;
                                 entity.Write(behaviourTreeStateChangedEvent);
                                 break;
                             }
@@ -125,12 +126,19 @@ public static class BehaviourTreeStateChangedEventSystemPatch
                     }
                     
                 }
-                else if (Utilities.HasComponent<BehaviourTreeState>(entity) && (entity.Read<BehaviourTreeState>().Value == GenericEnemyState.Flee))
+                else if (Utilities.HasComponent<BehaviourTreeState>(entity) && (entity.Read<BehaviourTreeState>().Value == GenericEnemyState.Follow))
                 {
-                    
-                    BehaviourTreeState behaviourTreeStateChangedEvent = entity.Read<BehaviourTreeState>();
-                    behaviourTreeStateChangedEvent.Value = GenericEnemyState.Follow;
-                    entity.Write(behaviourTreeStateChangedEvent);
+                    var distance = entity.Read<Translation>().Value - entity.Read<Follower>().Followed._Value.Read<Translation>().Value;
+                    // Calculate the magnitude of the distance vector to get the scalar distance
+                    var distanceMagnitude = math.length(distance);
+
+                    // If distance is less than 2, set to idle
+                    if (distanceMagnitude < 2)
+                    {
+                        BehaviourTreeState behaviourTreeStateChangedEvent = entity.Read<BehaviourTreeState>();
+                        behaviourTreeStateChangedEvent.Value = GenericEnemyState.Idle;
+                        entity.Write(behaviourTreeStateChangedEvent);
+                    }
                 }
                 
                 

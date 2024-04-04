@@ -18,7 +18,7 @@ namespace VCreate.Hooks
     internal class PetSystem
     {
         [HarmonyPatch]
-        public class DeathEventListenerSystem_PetPatch
+        public class DeathEventListenerSystem_PetPatch  
         {
             [HarmonyPatch(typeof(DeathEventListenerSystem), "OnUpdate")]
             [HarmonyPostfix]
