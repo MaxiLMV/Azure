@@ -381,8 +381,8 @@ namespace VCreate.Systems
                     stats.PhysicalPower = ModifiableFloat.CreateFixed(profile.Stats[3]);
                     stats.SpellPower = ModifiableFloat.CreateFixed(profile.Stats[4]);
                     stats.PhysicalCriticalStrikeChance._Value = profile.Stats[5];
-                    stats.SpellCriticalStrikeChance._Value = profile.Stats[6];
-                    stats.PhysicalCriticalStrikeDamage._Value = profile.Stats[7];
+                    stats.SpellCriticalStrikeChance._Value = profile.Stats[7];
+                    stats.PhysicalCriticalStrikeDamage._Value = profile.Stats[6];
                     stats.SpellCriticalStrikeDamage._Value = profile.Stats[8];
                     level.Level = profile.Level;
                     familiar.Write(stats);

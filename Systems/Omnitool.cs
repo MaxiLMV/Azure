@@ -33,6 +33,8 @@ namespace VCreate.Systems
         public bool EquipSkills { get; set; }
 
         public bool RemoveNodes { get; set; }
+
+        public bool Shiny { get; set; }
         public Stack<string> LastPlaced { get; set; } = new Stack<string>();
 
         // Constructor

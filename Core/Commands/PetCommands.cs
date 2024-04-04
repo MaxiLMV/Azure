@@ -37,6 +37,11 @@ namespace VCreate.Core.Commands
                     }
                 }
             }
+            if (PlayerFamiliarStasisMap.TryGetValue(platformId, out var familiarStasisState) && familiarStasisState.IsInStasis)
+            {
+                ctx.Reply("You have a familiar in stasis. If you want to set another to bind, call it and unbind first.");
+                return;
+            }
             if (DataStructures.UnlockedPets.TryGetValue(platformId, out var data))
             {
                 if (choice < 1 || choice > data.Count)
@@ -489,8 +494,8 @@ namespace VCreate.Core.Commands
                         string spellcritchance = White(stats[7].ToString());
                         string spellcritdamage = White(stats[8].ToString());
                         string avgPower = White(((stats[3] + stats[4]) / 2).ToString());
-                        string avgCritChance = White(((stats[5] + stats[7]) / 2).ToString());
-                        string avgCritDamage = White(((stats[6] + stats[8]) / 2).ToString());
+                        string avgCritChance = White(((stats[5] + stats[7]) / 2f).ToString());
+                        string avgCritDamage = White(((stats[6] + stats[8]) / 2f).ToString());
                         ctx.Reply($"Max Health: {maxhealth}, Cast Speed: {attackspeed}, Primary Attack Speed: {primaryattackspeed}, Power: {avgPower}, Critical Chance: {avgCritChance}, Critical Damage: {avgCritDamage}");
                         if (DataStructures.PetBuffMap.TryGetValue(platformId, out var keyValuePairs))
                         {
@@ -553,6 +558,34 @@ namespace VCreate.Core.Commands
             ulong platformId = ctx.User.PlatformId;
             if (!Services.PlayerService.TryGetPlayerFromString(ctx.Event.User.CharacterName.ToString(), out var player)) return;
             VCreate.Hooks.EmoteSystemPatch.ToggleCombat(player, platformId);
+        }
+
+        [Command(name: "shinyToggle", shortHand: "shiny", adminOnly: false, usage: ".shiny", description: "Toggles shiny buff for familiar if unlocked.")]
+
+        public static void ShinyToggle(ChatCommandContext ctx)
+        {
+            ulong platformId = ctx.User.PlatformId;
+
+            if (DataStructures.PlayerSettings.TryGetValue(platformId, out var settings))
+            {
+                if (settings.Shiny)
+                {
+                    settings.Shiny = false;
+                    DataStructures.SavePlayerSettings();
+                    ctx.Reply("Shiny buff disabled.");
+                }
+                else
+                {
+                    settings.Shiny = true;
+                    DataStructures.SavePlayerSettings();
+                    ctx.Reply("Shiny buff enabled.");
+                
+                }
+            }
+            else
+            {
+                ctx.Reply("Couldn't find data to toggle shiny.");
+            }
         }
         /*
         public static void MethodFive(ChatCommandContext ctx)

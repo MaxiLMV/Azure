@@ -465,13 +465,14 @@ namespace VCreate.Hooks
                 }
                 else
                 {
-                    Plugin.Log.LogInfo("Player unlocks full (15) or already unlocked, not adding to unlocked pets. Rolling for shiny...");
+                    //Plugin.Log.LogInfo("Player unlocks full (15) or already unlocked, not adding to unlocked pets. Rolling for shiny...");
                     specialPet = TryAddSpecialPetBuff(playerId, died);
                     if (specialPet)
                     {
 
                         PrefabGUID prefabGUID = died.Read<PrefabGUID>();
-                        string message = $"You've unlocked a visual for {prefabGUID.LookupName()}";
+                        string prefabColor = VCreate.Core.Toolbox.FontColors.Cyan(prefabGUID.LookupName());
+                        string message = $"You've unlocked a visual for {prefabColor}";
                         ServerChatUtils.SendSystemMessageToClient(VWorld.Server.EntityManager, user, message);
                     }
                 }
