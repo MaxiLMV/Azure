@@ -412,13 +412,13 @@ namespace VPlus.Augments.Rank
             }
         }
 
-        [Command(name: "listClasses", shortHand: "classes", adminOnly: false, usage: ".classes", description: "Lists classes available through ranking.")]
+        //[Command(name: "listClasses", shortHand: "classes", adminOnly: false, usage: ".classes", description: "Lists classes available through ranking.")]
         public static void ListClasses(ChatCommandContext ctx)
         {
             ctx.Reply("Classes available: Berserker, Pyromancer, BladeDancer, VampireLord, HolyRevenant, Gunslinger, Inquisitor, PlagueShaman, ThunderLord, VoidKnight, EarthWarden, FrostScion.");
         }
 
-        [Command(name: "chooseSpell", shortHand: "cs", adminOnly: false, usage: ".cs [#]", description: "Sets class spell to shift.")]
+        //[Command(name: "chooseSpell", shortHand: "cs", adminOnly: false, usage: ".cs [#]", description: "Sets class spell to shift.")]
         public static void SpellChoice(ChatCommandContext ctx, int choice)
         {
             Entity character = ctx.Event.SenderCharacterEntity;
@@ -426,6 +426,9 @@ namespace VPlus.Augments.Rank
 
             if (Databases.playerRanks.TryGetValue(SteamID, out RankData rankData))
             {
+
+
+                
                 if (choice == 0)
                 {
                     rankData.RankSpell = 0;
@@ -714,7 +717,7 @@ namespace VPlus.Augments.Rank
             }
         }
 
-        [Command(name: "chooseClass", shortHand: "cc", adminOnly: false, usage: ".cc [class]", description: "Sets class to use spells from.")]
+        //[Command(name: "chooseClass", shortHand: "cc", adminOnly: false, usage: ".cc [class]", description: "Sets class to use spells from.")]
         public static void ChooseClass(ChatCommandContext ctx, string className)
         {
             string nameClass = className.ToLower();

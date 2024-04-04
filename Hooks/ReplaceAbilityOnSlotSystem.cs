@@ -123,6 +123,8 @@ namespace VPlus.Hooks
                     }
                     return;
                 }
+
+                /*
                 if (DateTime.UtcNow - data.LastAbilityUse < TimeSpan.FromSeconds(data.SpellRank * 10))
                 {
                     return;
@@ -160,6 +162,7 @@ namespace VPlus.Hooks
                 {
                     Plugin.Logger.LogInfo("Error setting cooldown." + ex.Message);
                 }
+                */
             }
             else
             {
