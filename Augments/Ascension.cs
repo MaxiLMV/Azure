@@ -8,6 +8,7 @@ using ProjectM.Network;
 using ProjectM;
 using Bloodstone.API;
 using VPlus.Hooks;
+using ProjectM.Scripting;
 
 namespace VPlus.Augments
 {
@@ -39,7 +40,7 @@ namespace VPlus.Augments
             UpdateVPoints();
             LastConnectionTime = DateTime.UtcNow; // Reset for next session
             EntityManager entityManager = VWorld.Server.EntityManager;
-            ServerChatUtils.SendSystemMessageToClient(entityManager, user, $"Your {redV} Tokens have been updated, don't forget to redeem them: {VPlus.Core.Toolbox.FontColors.Yellow(divineData.VTokens.ToString())}");
+            ServerChatUtils.SendSystemMessageToClient(entityManager, user, $"Your {redV} Tokens have been updated, don't forget to .redeem them: {VPlus.Core.Toolbox.FontColors.Yellow(divineData.VTokens.ToString())}");
         }
 
         public void UpdateVPoints()
@@ -60,8 +61,8 @@ namespace VPlus.Augments
         public static void AscensionCheck(ChatCommandContext ctx, string playerName, ulong SteamID, DivineData data)
         {
             // check requirements are met and return true if so, false if not
-            bool requirementsMet = false; //need to implement this
-            requirementsMet = CheckRequirements(ctx, playerName, SteamID, data);
+
+            bool requirementsMet = CheckRequirements(ctx, playerName, SteamID, data);
             if (requirementsMet)
             {
                 // run thing here, thing return true if works
@@ -168,28 +169,27 @@ namespace VPlus.Augments
 
         public static bool CheckLevelRequirements(ChatCommandContext ctx, DivineData _, List<int> prefabIds)
         {
+            ServerGameManager serverGameManager = VWorld.Server.GetExistingSystem<ServerScriptMapper>()._ServerGameManager;
             EntityManager entityManager = VWorld.Server.EntityManager;
             var user = ctx.User;
             UserModel userModel = VRising.GameData.GameData.Users.GetUserByPlatformId(user.PlatformId);
             Entity characterEntity = userModel.FromCharacter.Character;
-
+            
             // Aggregate required quantities for each PrefabGUID
             var requiredQuantities = prefabIds
                 .Select((id, index) => new PrefabGUID(id))
                 .GroupBy(guid => guid)
                 .ToDictionary(group => group.Key, group => group.Count());
-
-            // Aggregate actual quantities in the user's inventory
-            var actualQuantities = userModel.Inventory.Items
-                .GroupBy(item => item.Item.PrefabGUID)
-                .ToDictionary(group => group.Key, group => group.Sum(item => item.Stacks));
+            
+           
 
             // Check if all required items with their quantities are present in the inventory
             foreach (var requirement in requiredQuantities)
             {
-                if (!actualQuantities.TryGetValue(requirement.Key, out var actualQuantity) || actualQuantity < requirement.Value)
+                if (serverGameManager.GetInventoryItemCount(characterEntity, requirement.Key) < requirement.Value)
                 {
-                    return false; // Requirement not met, return early
+                    ctx.Reply($"You do not have enough of the required item: {requirement.Key}x{requirement.Value}");
+                    return false;
                 }
             }
 
