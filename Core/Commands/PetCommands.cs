@@ -11,6 +11,7 @@ using VCreate.Hooks;
 using VCreate.Systems;
 using VRising.GameData.Models;
 using VRising.GameData.Utils;
+using static ProjectM.VoiceMapping;
 using static VCreate.Core.Toolbox.FontColors;
 using static VCreate.Hooks.PetSystem.UnitTokenSystem;
 
@@ -107,6 +108,55 @@ namespace VCreate.Core.Commands
             else
             {
                 ctx.Reply("You don't have any unlocked familiars yet.");
+            }
+        }
+
+        [Command(name: "resetFamiliarProfile", shortHand: "reset", adminOnly: false, usage: ".reset [#]", description: "Resets familiar profile, allowing it to level again.")]
+
+        public static void ResetFam(ChatCommandContext ctx, int choice)
+        {
+            ulong platformId = ctx.User.PlatformId;
+            if (DataStructures.PlayerPetsMap.TryGetValue(platformId, out var data))
+            {
+                if (DataStructures.UnlockedPets.TryGetValue(platformId, out var unlocked))
+                {
+                    if (choice < 1 || choice > unlocked.Count)
+                    {
+                        ctx.Reply($"Invalid choice, please use 1 to {unlocked.Count}.");
+                        return;
+                    }
+                    Entity familiar = FindPlayerFamiliar(ctx.Event.SenderCharacterEntity);
+                    if (familiar.Equals(Entity.Null))
+                    {
+                        ctx.Reply("Call your familiar before resetting it.");
+                        return;
+                    }
+                    else
+                    {
+                        if (data.TryGetValue(familiar.Read<PrefabGUID>().LookupName().ToString(), out PetExperienceProfile profile) && profile.Active)
+                        {
+
+
+                            data[familiar.Read<PrefabGUID>().LookupName().ToString()] = new();
+                            DataStructures.PlayerPetsMap[platformId] = data;
+                            DataStructures.SavePetExperience();
+                            ctx.Reply("Familiar profile reset. Unbind and rebind to complete.");
+                        }
+                        else
+                        {
+                            ctx.Reply("Couldn't find active familiar in followers to reset.");
+                        }
+                    }
+                }
+                else
+                {
+                    ctx.Reply("You don't have any unlocked familiars yet.");
+                }
+            }
+            else
+            {
+                ctx.Reply("You don't have any familiars.");
+                return;
             }
         }
 

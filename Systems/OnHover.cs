@@ -294,16 +294,15 @@ namespace VCreate.Systems
             Utilities.AddComponentData(familiar, new FactionReference { FactionGuid = modifiablePrefabGUID });
 
             AggroConsumer aggroConsumer = familiar.Read<AggroConsumer>();
-            aggroConsumer.ProximityRadius = 18f;
-            aggroConsumer.MaxDistanceFromPreCombatPosition = 30f;
+            aggroConsumer.ProximityRadius = 15f;
+            aggroConsumer.MaxDistanceFromPreCombatPosition = 25f;
             aggroConsumer.RemoveDelay = 6f;
             familiar.Write(aggroConsumer);
 
             DynamicCollision dynamicCollision = familiar.Read<DynamicCollision>();
-            dynamicCollision.AgainstPlayers.RadiusOverride = -1f;
-            dynamicCollision.AgainstUnits.RadiusOverride = -1f;
+            dynamicCollision.AgainstPlayers.RadiusOverride = 0.5f;
             familiar.Write(dynamicCollision);
-
+            
             if (!familiar.Has<AttachMapIconsToEntity>())
             {
                 entityManager.AddBuffer<AttachMapIconsToEntity>(familiar).Add(new AttachMapIconsToEntity { Prefab = VCreate.Data.Prefabs.MapIcon_CastleWaypoint_Active });
