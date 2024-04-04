@@ -349,8 +349,8 @@ namespace VCreate.Hooks
 
         public class UnitTokenSystem
         {
-            private static readonly float chance = 1f; // testing
-            private static readonly float vfactor = 3f; // DONT FORGET TO CHANGE THESE BACK, signed yourself
+            private static readonly float chance = 0.01f; // testing
+            private static readonly float vfactor = 2f; // DONT FORGET TO CHANGE THESE BACK, signed yourself
             public static readonly Random Random = new();
 
             public class UnitToGemMapping
