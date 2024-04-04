@@ -50,6 +50,12 @@ namespace VCreate.Core
 
         private void GameDataOnInitialize(World world)
         {
+            // modify faction targets here
+            //ModifyGameData();
+        }
+        private static void ModifyGameData()
+        {
+
         }
 
         private static void InitConfig()

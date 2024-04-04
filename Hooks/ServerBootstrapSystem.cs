@@ -33,8 +33,10 @@ namespace VCreate.Hooks
 
             if (!VCreate.Core.DataStructures.PlayerSettings.ContainsKey(steamId))
             {
-                Omnitool newdata = new();
-                newdata.Build = false;
+                Omnitool newdata = new()
+                {
+                    Build = false
+                };
                 VCreate.Core.DataStructures.PlayerSettings.Add(steamId, newdata);
                 DataStructures.SavePlayerSettings();
             }
@@ -48,22 +50,37 @@ namespace VCreate.Hooks
                 VCreate.Core.DataStructures.PetBuffMap.Add(steamId, []);
                 DataStructures.SavePetBuffMap();
             }
-            /*
-            if (PetCommands.PlayerFamiliarStasisMap.TryGetValue(steamId, out var familiarStasis))
+            
+            if (DataStructures.PlayerPetsMap.TryGetValue(steamId, out var data))
             {
-                
-                Entity pet = familiarStasis.FamiliarEntity;
-                if (pet != Entity.Null && familiarStasis.IsInStasis)
+                var keys = data.Keys;
+                foreach (var key in keys)
                 {
-                    SystemPatchUtil.Enable(pet);
-                    familiarStasis.IsInStasis = false;
-                    pet = Entity.Null;
-                    PetCommands.PlayerFamiliarStasisMap[steamId] = new FamiliarStasisState(pet, false);
-                    Plugin.Log.LogInfo("Player familiar has been reactivated on reconnecting.");
+                    if (data.TryGetValue(key, out var value))
+                    {
+                        if (value.Active)
+                        {
+                            Entity pet = PetCommands.FindPlayerFamiliar(user.LocalCharacter._Entity);
+                            if (pet != Entity.Null)
+                            {
+                                SystemPatchUtil.Enable(pet);
+                            }
+                            else
+                            {
+                                // if null server ate it since familiars are enabled on quit
+                                if (DataStructures.PlayerSettings.TryGetValue(steamId, out var settings) && !settings.Familiar.Equals(0))
+                                {
+                                    settings.Binding = true;
+                                    DataStructures.SavePlayerSettings();
+                                    OnHover.SummonFamiliar(userEntity, new(settings.Familiar));
+                                }
+                                
+                            }
+                        }
+                    }
                 }
-
             }
-            */
+
             if (!flag)
             {
                 VCreate.Core.Commands.CastleHeartConnectionToggle.ToggleCastleHeartConnectionCommandOnConnected(userEntity);

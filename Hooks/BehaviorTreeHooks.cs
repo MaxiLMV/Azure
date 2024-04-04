@@ -88,13 +88,13 @@ public static class BehaviourTreeStateChangedEventSystemPatch
                     behaviourTreeStateChangedEvent.Value = GenericEnemyState.Follow;
                     entity.Write(behaviourTreeStateChangedEvent);
                 }
-                else if (Utilities.HasComponent<BehaviourTreeState>(entity) && entity.Read<BehaviourTreeState>().Value == GenericEnemyState.Combat)
+                else if (Utilities.HasComponent<BehaviourTreeState>(entity) && entity.Read<BehaviourTreeState>().Value == GenericEnemyState.Alert)
                 {
                     if (!entity.Has<AggroConsumer>()) continue;
                     AggroConsumer aggroConsumer = entity.Read<AggroConsumer>();
-                    Entity aggroTarget = aggroConsumer.AggroTarget._Entity;
+                    //Entity aggroTarget = aggroConsumer.AggroTarget._Entity;
                     Entity alertTarget = aggroConsumer.AlertTarget._Entity;
-                    
+                    /*
                     if (aggroTarget.Has<VampireTag>())
                     {
                         var aggroBuffer = aggroTarget.ReadBuffer<BuffBuffer>();
@@ -102,14 +102,21 @@ public static class BehaviourTreeStateChangedEventSystemPatch
                         {
                             if (buff.PrefabGuid.GuidHash == VCreate.Data.Prefabs.Buff_General_PvPProtected.GuidHash)
                             {
-                                BehaviourTreeState behaviourTreeStateChangedEvent = entity.Read<BehaviourTreeState>();
-                                behaviourTreeStateChangedEvent.Value = GenericEnemyState.Follow;
-                                entity.Write(behaviourTreeStateChangedEvent);
+                                var buffer = entity.ReadBuffer<AggroCandidateBufferElement>();
+                                for (int i = 0; i < buffer.Length; i++)
+                                {
+                                    if (buffer[i].Entity == aggroTarget)
+                                    {
+                                        buffer.RemoveAt(i);
+                                        break;
+                                    }
+                                }
                                 break;
                             }
                         }
-                        
                     }
+                    */
+
                     if (alertTarget.Has<VampireTag>())
                     {
                         var alertBuffer = alertTarget.ReadBuffer<BuffBuffer>();
@@ -117,14 +124,19 @@ public static class BehaviourTreeStateChangedEventSystemPatch
                         {
                             if (buff.PrefabGuid.GuidHash == VCreate.Data.Prefabs.Buff_General_PvPProtected.GuidHash)
                             {
-                                BehaviourTreeState behaviourTreeStateChangedEvent = entity.Read<BehaviourTreeState>();
-                                behaviourTreeStateChangedEvent.Value = GenericEnemyState.Follow;
-                                entity.Write(behaviourTreeStateChangedEvent);
+                                var buffer = entity.ReadBuffer<AggroCandidateBufferElement>();
+                                for (int i = 0; i < buffer.Length; i++)
+                                {
+                                    if (buffer[i].Entity == alertTarget)
+                                    {
+                                        buffer.RemoveAt(i);
+                                        break;
+                                    }
+                                }
                                 break;
                             }
                         }
                     }
-                    
                 }
                 else if (Utilities.HasComponent<BehaviourTreeState>(entity) && (entity.Read<BehaviourTreeState>().Value == GenericEnemyState.Follow))
                 {
@@ -133,18 +145,13 @@ public static class BehaviourTreeStateChangedEventSystemPatch
                     var distanceMagnitude = math.length(distance);
 
                     // If distance is less than 2, set to idle
-                    if (distanceMagnitude < 2)
+                    if (distanceMagnitude < 2f)
                     {
                         BehaviourTreeState behaviourTreeStateChangedEvent = entity.Read<BehaviourTreeState>();
                         behaviourTreeStateChangedEvent.Value = GenericEnemyState.Idle;
                         entity.Write(behaviourTreeStateChangedEvent);
                     }
                 }
-                
-                
-                
-                
-                
             }
         }
         catch (Exception e)

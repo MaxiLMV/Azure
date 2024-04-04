@@ -426,7 +426,7 @@ namespace VCreate.Core.Commands
             }
         }
 
-        [Command(name: "removeDecay", shortHand: "decay", adminOnly: true, usage: ".decay", description: "Puts user heart on missing connections from buildings placed in twb. WIP")]
+        [Command(name: "claimStructures", shortHand: "claim", adminOnly: true, usage: ".claim", description: "Puts user heart on missing connections from buildings placed in twb. WIP")]
         public static void RemoveDecay(ChatCommandContext ctx)
         {
             //method for query
@@ -453,7 +453,7 @@ namespace VCreate.Core.Commands
                     ulong platformId = userOwner.Owner._Entity.Read<User>().PlatformId;
                     if (platformId.Equals(user.PlatformId))
                     {
-                        Plugin.Log.LogInfo("Found user heart. Querying for decay...");
+                        Plugin.Log.LogInfo("Found user heart. Querying for structures...");
                         EntityQuery decayQuery = VWorld.Server.EntityManager.CreateEntityQuery(new EntityQueryDesc()
                         {
                             All = new ComponentType[]
@@ -473,9 +473,9 @@ namespace VCreate.Core.Commands
                                 {
                                     continue;
                                 }
-                                else if (CastleTerritoryCache.TryGetCastleTerritory(entity, out var _))
+                                else if (CastleTerritoryCache.TryGetCastleTerritory(entity, out var _) || entity.Read<Team>().Value != 1)
                                 {
-                                    //skip things in territories
+                                    //skip things in territories and if they already have valid teams
                                     continue;
                                 }
                                 else
@@ -488,6 +488,11 @@ namespace VCreate.Core.Commands
                                     }
                                     else if (entity.Read<CastleHeartConnection>().CastleHeartEntity._Entity.Equals(Entity.Null)) 
                                     {
+                                        Team team = entity.Read<Team>();
+                                        Team userTeam = ctx.Event.SenderCharacterEntity.Read<Team>();
+                                        team.Value = userTeam.Value;
+                                        team.FactionIndex = userTeam.FactionIndex;
+                                        entity.Write(team);
                                         Entity castleHeart = heartEntity.Read<CastleHeartConnection>().CastleHeartEntity._Entity;
                                         CastleHeartConnection castleHeartConnection = entity.Read<CastleHeartConnection>();
                                         castleHeartConnection.CastleHeartEntity = castleHeart;
