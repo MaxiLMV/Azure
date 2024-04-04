@@ -1,6 +1,7 @@
 ﻿using Bloodstone.API;
 using HarmonyLib;
 using ProjectM;
+using ProjectM.Gameplay.Scripting;
 using ProjectM.Network;
 using Unity.Collections;
 using Unity.Entities;
@@ -495,6 +496,32 @@ namespace VCreate.Hooks
                 if (randInt < 20)
                 {
                     // Initialize visuals set and select a random prefab
+                    HashSet<int> visuals = [];
+                    PrefabGUID prefabGUID = DeathEventHandlers.GetRandomPrefab();
+                    visuals.Add(prefabGUID.GuidHash);
+
+                    // Ensure the pet buff map for the player exists
+                    if (!DataStructures.PetBuffMap.ContainsKey(playerId))
+                    {
+                        DataStructures.PetBuffMap[playerId] = [];
+                    }
+
+                    // Ensure the specific pet has an entry in the buff map
+                    if (!DataStructures.PetBuffMap[playerId].ContainsKey(died.Read<PrefabGUID>().GuidHash))
+                    {
+                        DataStructures.PetBuffMap[playerId].Add(died.Read<PrefabGUID>().GuidHash, []);
+                    }
+
+                    // Add the "Shiny" buff with visuals to the pet
+                    DataStructures.PetBuffMap[playerId][died.Read<PrefabGUID>().GuidHash].Add("Shiny", visuals);
+
+                    // Save the updated pet buff map
+                    DataStructures.SavePetBuffMap();
+
+                    return true; // Indicates a special pet was added
+                }
+                else if (died.Read<PrefabGUID>().LookupName().ToLower().Contains("vblood"))
+                {
                     HashSet<int> visuals = [];
                     PrefabGUID prefabGUID = DeathEventHandlers.GetRandomPrefab();
                     visuals.Add(prefabGUID.GuidHash);
