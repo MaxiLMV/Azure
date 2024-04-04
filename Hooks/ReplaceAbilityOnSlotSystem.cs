@@ -123,7 +123,7 @@ namespace VPlus.Hooks
                     }
                     return;
                 }
-                if (DateTime.UtcNow - data.LastAbilityUse < TimeSpan.FromSeconds(data.SpellRank * 12))
+                if (DateTime.UtcNow - data.LastAbilityUse < TimeSpan.FromSeconds(data.SpellRank * 10))
                 {
                     return;
                 }
@@ -136,7 +136,7 @@ namespace VPlus.Hooks
 
                 newItem.Slot = 3;
                 buffer.Add(newItem);
-                float cooldown = data.SpellRank * 6;
+                float cooldown = data.SpellRank * 14;
                 try
                 {
                     Entity abilityEntity = Helper.prefabCollectionSystem._PrefabGuidToEntityMap[prefabGUID];

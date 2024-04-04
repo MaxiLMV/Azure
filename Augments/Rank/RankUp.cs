@@ -404,7 +404,7 @@ namespace VPlus.Augments.Rank
                     case "holyrevenant": return new HolyRevenant();
                     case "vampirelord": return new VampireLord();
                     case "bladedancer": return new BladeDancer();
-                    case "pyromancer": return new Pyromancer();
+                    //case "pyromancer": return new Pyromancer();
                     case "berserker": return new Berserker();
 
                     default: return null;
@@ -433,9 +433,9 @@ namespace VPlus.Augments.Rank
                     ctx.Reply("Rank spell removed. This won't apply until you swap weapons.");
                     return;
                 }
-                if (DateTime.UtcNow - rankData.LastAbilityUse < TimeSpan.FromSeconds(rankData.SpellRank*12))
+                if (DateTime.UtcNow - rankData.LastAbilityUse < TimeSpan.FromSeconds(rankData.SpellRank*10))
                 {
-                    ctx.Reply($"You must wait {rankData.SpellRank*12}s before changing abilities.");
+                    ctx.Reply($"You must wait {rankData.SpellRank*10}s before changing abilities.");
                     return;
                 }
                 var classInstance = ClassFactory.CreateClassInstance(rankData.ClassChoice);
@@ -667,7 +667,7 @@ namespace VPlus.Augments.Rank
                                 item.Slot = 3;
                                 abilities.Add(item);
 
-                                float cd = rankData.SpellRank * 6;
+                                float cd = rankData.SpellRank * 14;
                                 //Plugin.Logger.LogInfo($"Set ability.");
                                 try
                                 {
