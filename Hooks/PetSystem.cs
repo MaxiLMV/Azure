@@ -116,25 +116,7 @@ namespace VCreate.Hooks
                 if (profile.CurrentExperience >= toNext && profile.Level < 80)
                 {
                     var buffs = pet.ReadBuffer<BuffBuffer>();
-                    foreach (var buff in buffs)
-                    {
-                        if (buff.PrefabGuid.GuidHash == -491593410 || buff.PrefabGuid.GuidHash == -429891372 || buff.PrefabGuid.GuidHash == 1050324275)
-                        {
-                            SystemPatchUtil.Destroy(buff.Entity);
-                        }
-                    }
-                    EntityCommandBufferSystem entityCommandBufferSystem = VWorld.Server.GetExistingSystem<EntityCommandBufferSystem>();
-                    EntityCommandBuffer entityCommandBuffer = entityCommandBufferSystem.CreateCommandBuffer();
-                    ServerGameManager serverGameManager = VWorld.Server.GetExistingSystem<ServerScriptMapper>()._ServerGameManager;
-                    BuffUtility.BuffSpawner buffSpawner = BuffUtility.BuffSpawner.Create(serverGameManager);
-
-                    PrefabGUID bloodrage = new(-491593410);
-                    PrefabGUID powersurge = new(-429891372);
-                    PrefabGUID aegis = new(1050324275);
-
-                    BuffUtility.TryRemoveBuff(ref buffSpawner, entityCommandBuffer, bloodrage, pet);
-                    BuffUtility.TryRemoveBuff(ref buffSpawner, entityCommandBuffer, powersurge, pet);
-                    BuffUtility.TryRemoveBuff(ref buffSpawner, entityCommandBuffer, aegis, pet);
+                    
                     UpdatePetLevelAndStats(profile, pet, owner, profiles);
                 }
                 else
@@ -162,6 +144,7 @@ namespace VCreate.Hooks
                 UnitStats unitStats = follower.Read<UnitStats>();
                 Health health = follower.Read<Health>();
 
+                /*
                 float[] stats =
                 [
                     health.MaxHealth._Value,
@@ -177,6 +160,26 @@ namespace VCreate.Hooks
 
                 profile.Stats.Clear();
                 profile.Stats.AddRange(stats);
+
+                */
+                float[] statIncreases = [
+    StatIncreases.Increases[FocusToStatMap.StatType.MaxHealth],
+    StatIncreases.Increases[FocusToStatMap.StatType.AttackSpeed],
+    StatIncreases.Increases[FocusToStatMap.StatType.PrimaryAttackSpeed],
+    StatIncreases.Increases[FocusToStatMap.StatType.Power], // Assuming PhysicalPower and SpellPower use the same increase.
+    StatIncreases.Increases[FocusToStatMap.StatType.Power], // Duplicate for demonstration purposes.
+    StatIncreases.Increases[FocusToStatMap.StatType.CriticalChance], // Assuming PhysicalCriticalStrikeChance and SpellCriticalStrikeChance use the same increase.
+    StatIncreases.Increases[FocusToStatMap.StatType.CriticalDamage], // Assuming PhysicalCriticalStrikeDamage and SpellCriticalStrikeDamage use the same increase.
+    StatIncreases.Increases[FocusToStatMap.StatType.CriticalChance], // Duplicate for demonstration purposes.
+    StatIncreases.Increases[FocusToStatMap.StatType.CriticalDamage]  // Duplicate for demonstration purposes.
+];
+
+                // Directly apply the increases to each stat in profile.Stats.
+                for (int i = 0; i < profile.Stats.Count; i++)
+                {
+                    profile.Stats[i] += statIncreases[i];
+                    // Optionally, here you could check against StatCaps to ensure no stat exceeds its maximum value.
+                }
                 profiles[follower.Read<PrefabGUID>().LookupName().ToString()] = profile;
                 DataStructures.PlayerPetsMap[killer.Read<PlayerCharacter>().UserEntity.Read<User>().PlatformId] = profiles;
                 DataStructures.SavePetExperience();

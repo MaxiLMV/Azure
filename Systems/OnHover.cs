@@ -295,9 +295,8 @@ namespace VCreate.Systems
             Utilities.AddComponentData(familiar, new FactionReference { FactionGuid = modifiablePrefabGUID });
 
             AggroConsumer aggroConsumer = familiar.Read<AggroConsumer>();
-            aggroConsumer.ProximityRadius = 15f;
+            aggroConsumer.ProximityRadius = 20f;
             aggroConsumer.MaxDistanceFromPreCombatPosition = 25f;
-            aggroConsumer.RemoveDelay = 6f;
             familiar.Write(aggroConsumer);
 
             DynamicCollision dynamicCollision = familiar.Read<DynamicCollision>();

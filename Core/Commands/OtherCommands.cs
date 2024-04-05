@@ -156,6 +156,7 @@ namespace VCreate.Core.Commands
 
         public static void LightQuery(ChatCommandContext ctx)
         {
+            
             bool includeDisabled = true;
             EntityQuery nodeQuery = VWorld.Server.EntityManager.CreateEntityQuery(new EntityQueryDesc()
             {

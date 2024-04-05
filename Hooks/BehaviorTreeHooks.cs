@@ -143,14 +143,23 @@ public static class BehaviourTreeStateChangedEventSystemPatch
                     var distance = entity.Read<Translation>().Value - entity.Read<Follower>().Followed._Value.Read<Translation>().Value;
                     // Calculate the magnitude of the distance vector to get the scalar distance
                     var distanceMagnitude = math.length(distance);
-
+                    Follower follower = entity.Read<Follower>();
+                    
                     // If distance is less than 2, set to idle
-                    if (distanceMagnitude < 3f)
+                    if (distanceMagnitude < 3.5f)
                     {
                         BehaviourTreeState behaviourTreeStateChangedEvent = entity.Read<BehaviourTreeState>();
                         behaviourTreeStateChangedEvent.Value = GenericEnemyState.Idle;
                         entity.Write(behaviourTreeStateChangedEvent);
+                        follower.ModeModifiable = ModifiableInt.CreateFixed(0);
+                        entity.Write(follower);
                     }
+                    else
+                    {
+                        follower.ModeModifiable = ModifiableInt.CreateFixed(1);
+                        entity.Write(follower);
+                    }
+                
                 }
             }
         }
