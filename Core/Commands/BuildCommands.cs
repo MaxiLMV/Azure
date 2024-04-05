@@ -486,17 +486,19 @@ namespace VCreate.Core.Commands
                                     {
                                         continue;
                                     }
-                                    else if (entity.Read<CastleHeartConnection>().CastleHeartEntity._Entity.Equals(Entity.Null) || entity.Read<Team>().Value == 1) 
+                                    else if (entity.Read<Team>().Value == 1) 
                                     {
+                                        
+                                        Entity castleHeart = heartEntity.Read<CastleHeartConnection>().CastleHeartEntity._Entity;
+                                        CastleHeartConnection castleHeartConnection = entity.Read<CastleHeartConnection>();
+                                        castleHeartConnection.CastleHeartEntity = castleHeart;
+                                        entity.Write(castleHeartConnection);
+
                                         Team team = entity.Read<Team>();
                                         Team userTeam = ctx.Event.SenderCharacterEntity.Read<Team>();
                                         team.Value = userTeam.Value;
                                         team.FactionIndex = userTeam.FactionIndex;
                                         entity.Write(team);
-                                        Entity castleHeart = heartEntity.Read<CastleHeartConnection>().CastleHeartEntity._Entity;
-                                        CastleHeartConnection castleHeartConnection = entity.Read<CastleHeartConnection>();
-                                        castleHeartConnection.CastleHeartEntity = castleHeart;
-                                        entity.Write(castleHeartConnection);
                                     }
                                     else
                                     {

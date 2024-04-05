@@ -129,7 +129,8 @@ namespace VCreate.Hooks
             {
                 profile.CurrentExperience = 0;
                 profile.Level++;
-
+                var buffs = follower.ReadBuffer<BuffBuffer>();
+                buffs.Clear();
                 Plugin.Log.LogInfo("Pet level up! Saving stats.");
                 follower.Write<UnitLevel>(new UnitLevel { Level = profile.Level });
                 UnitStatSet(follower); 

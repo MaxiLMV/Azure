@@ -99,17 +99,24 @@ public static class FollowerSystemPatchV2
                 bool toCheck = BuffUtility.TryGetBuff(followed, VCreate.Data.Buffs.Buff_General_PvPProtected, entityManager.GetBufferFromEntity<BuffBuffer>(true), out var data);
                 if (toCheck)
                 {
-                    // give buff to familiar
-                    bool familiarCheck = BuffUtility.TryGetBuff(entity, VCreate.Data.Buffs.Buff_General_PvPProtected, entityManager.GetBufferFromEntity<BuffBuffer>(true), out var familiarData);
-                    if (familiarCheck) continue;
-                    OnHover.BuffNonPlayer(entity, VCreate.Data.Buffs.Buff_General_PvPProtected);
+                    // make familiar resistant to player dmg
+                    DamageCategoryStats damageCategoryStats = entity.Read<DamageCategoryStats>();
+                    damageCategoryStats.DamageVsPlayerVampires._Value = 0f;
+                    entity.Write(damageCategoryStats);
+                    ResistCategoryStats resistCategoryStats = entity.Read<ResistCategoryStats>();
+                    resistCategoryStats.ResistVsPlayerVampires._Value = 1f;
+                    entity.Write(resistCategoryStats);
                 }
                 else
                 {
-                    // remove buff from familiar
-                    bool familiarCheck = BuffUtility.TryGetBuff(entity, VCreate.Data.Buffs.Buff_General_PvPProtected, entityManager.GetBufferFromEntity<BuffBuffer>(true), out var familiarData);
-                    if (!familiarCheck) continue;
-                    BuffUtility.TryRemoveBuff(ref buffSpawner, entityCommandBuffer, VCreate.Data.Buffs.Buff_General_PvPProtected, entity);
+                    // make familiar nonresistant to player dmg
+                    DamageCategoryStats damageCategoryStats = entity.Read<DamageCategoryStats>();
+                    damageCategoryStats.DamageVsPlayerVampires._Value = 0.25f;
+                    entity.Write(damageCategoryStats);
+                    ResistCategoryStats resistCategoryStats = entity.Read<ResistCategoryStats>();
+                    resistCategoryStats.ResistVsPlayerVampires._Value = 0f;
+                    entity.Write(resistCategoryStats);
+
                 }
             }
         }
