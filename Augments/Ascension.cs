@@ -186,6 +186,7 @@ namespace VPlus.Augments
             // Check if all required items with their quantities are present in the inventory
             foreach (var requirement in requiredQuantities)
             {
+                if (requirement.Key.GuidHash == 0 ) continue;
                 if (serverGameManager.GetInventoryItemCount(characterEntity, requirement.Key) < requirement.Value)
                 {
                     ctx.Reply($"You do not have enough of the required item: {requirement.Key}x{requirement.Value}");
