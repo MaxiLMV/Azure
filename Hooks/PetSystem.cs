@@ -3,6 +3,7 @@ using HarmonyLib;
 using ProjectM;
 using ProjectM.Gameplay.Scripting;
 using ProjectM.Network;
+using ProjectM.Scripting;
 using Unity.Collections;
 using Unity.Entities;
 using VCreate.Core;
@@ -127,10 +128,19 @@ namespace VCreate.Hooks
 
             public static void UpdatePetLevelAndStats(PetExperienceProfile profile, Entity follower, Entity killer, Dictionary<string, PetExperienceProfile> profiles)
             {
-                profile.CurrentExperience = 0;
+                EntityCommandBufferSystem entityCommandBufferSystem = VWorld.Server.GetExistingSystem<EntityCommandBufferSystem>();
+                EntityCommandBuffer entityCommandBuffer = entityCommandBufferSystem.CreateCommandBuffer();
+                ServerGameManager serverGameManager = VWorld.Server.GetExistingSystem<ServerScriptMapper>()._ServerGameManager;
+                BuffUtility.BuffSpawner buffSpawner = BuffUtility.BuffSpawner.Create(serverGameManager);
                 profile.Level++;
-                var buffs = follower.ReadBuffer<BuffBuffer>();
-                buffs.Clear();
+                PrefabGUID bloodrage = new(-491593410);
+                PrefabGUID powersurge = new(-429891372);
+                PrefabGUID aegis = new(1050324275);
+
+                BuffUtility.TryRemoveBuff(ref buffSpawner, entityCommandBuffer, bloodrage, follower);
+                BuffUtility.TryRemoveBuff(ref buffSpawner, entityCommandBuffer, powersurge, follower);
+                BuffUtility.TryRemoveBuff(ref buffSpawner, entityCommandBuffer, aegis, follower);
+                //var buffs = follower.ReadBuffer<BuffBuffer>();
                 Plugin.Log.LogInfo("Pet level up! Saving stats.");
                 follower.Write<UnitLevel>(new UnitLevel { Level = profile.Level });
                 UnitStatSet(follower); 
