@@ -144,14 +144,14 @@ namespace VCreate.Hooks
                 UnitStats unitStats = follower.Read<UnitStats>();
                 Health health = follower.Read<Health>();
 
-                /*
+                
                 float[] stats =
                 [
                     health.MaxHealth._Value,
                     unitStats.AttackSpeed._Value,
-                    unitStats.PrimaryAttackSpeed._Value,
+                    profile.Stats[2],
                     unitStats.PhysicalPower._Value,
-                    unitStats.SpellPower._Value,
+                    profile.Stats[4],
                     unitStats.PhysicalCriticalStrikeChance._Value,
                     unitStats.PhysicalCriticalStrikeDamage._Value,
                     unitStats.SpellCriticalStrikeChance._Value,
@@ -160,26 +160,9 @@ namespace VCreate.Hooks
 
                 profile.Stats.Clear();
                 profile.Stats.AddRange(stats);
-
-                */
-                float[] statIncreases = [
-    StatIncreases.Increases[FocusToStatMap.StatType.MaxHealth],
-    StatIncreases.Increases[FocusToStatMap.StatType.AttackSpeed],
-    StatIncreases.Increases[FocusToStatMap.StatType.PrimaryAttackSpeed],
-    StatIncreases.Increases[FocusToStatMap.StatType.Power], // Assuming PhysicalPower and SpellPower use the same increase.
-    StatIncreases.Increases[FocusToStatMap.StatType.Power], // Duplicate for demonstration purposes.
-    StatIncreases.Increases[FocusToStatMap.StatType.CriticalChance], // Assuming PhysicalCriticalStrikeChance and SpellCriticalStrikeChance use the same increase.
-    StatIncreases.Increases[FocusToStatMap.StatType.CriticalDamage], // Assuming PhysicalCriticalStrikeDamage and SpellCriticalStrikeDamage use the same increase.
-    StatIncreases.Increases[FocusToStatMap.StatType.CriticalChance], // Duplicate for demonstration purposes.
-    StatIncreases.Increases[FocusToStatMap.StatType.CriticalDamage]  // Duplicate for demonstration purposes.
-];
-
-                // Directly apply the increases to each stat in profile.Stats.
-                for (int i = 0; i < profile.Stats.Count; i++)
-                {
-                    profile.Stats[i] += statIncreases[i];
-                    // Optionally, here you could check against StatCaps to ensure no stat exceeds its maximum value.
-                }
+               
+                
+                
                 profiles[follower.Read<PrefabGUID>().LookupName().ToString()] = profile;
                 DataStructures.PlayerPetsMap[killer.Read<PlayerCharacter>().UserEntity.Read<User>().PlatformId] = profiles;
                 DataStructures.SavePetExperience();
@@ -265,29 +248,30 @@ namespace VCreate.Hooks
                     if (profiles.TryGetValue(entity.Read<PrefabGUID>().LookupName().ToString(), out var profile))
                     {
                         choice = profile.Focus;
+                        FocusToStatMap.StatType choiceStat = FocusToStatMap.FocusStatMap[choice];
+
+                        if (selectedStat == FocusToStatMap.StatType.MaxHealth)
+                        {
+                            AdjustHealthWithCap(FocusToStatMap.StatType.MaxHealth, health, entity, entityManager, playerId);
+                        }
+                        else
+                        {
+                            AdjustStatWithCap(selectedStat, unitStats, entity, entityManager, playerId, profile);
+                        }
+                        if (choiceStat == FocusToStatMap.StatType.MaxHealth)
+                        {
+                            AdjustHealthWithCap(FocusToStatMap.StatType.MaxHealth, health, entity, entityManager, playerId);
+                        }
+                        else
+                        {
+                            AdjustStatWithCap(choiceStat, unitStats, entity, entityManager, playerId, profile);
+                        }
                     }
                 }
-                FocusToStatMap.StatType choiceStat = FocusToStatMap.FocusStatMap[choice];
-
-                if (selectedStat == FocusToStatMap.StatType.MaxHealth)
-                {
-                    AdjustHealthWithCap(FocusToStatMap.StatType.MaxHealth, health, entity, entityManager, playerId);
-                }
-                else
-                {
-                    AdjustStatWithCap(selectedStat, unitStats, entity, entityManager, playerId);
-                }
-                if (choiceStat == FocusToStatMap.StatType.MaxHealth)
-                {
-                    AdjustHealthWithCap(FocusToStatMap.StatType.MaxHealth, health, entity, entityManager, playerId);
-                }
-                else
-                {
-                    AdjustStatWithCap(choiceStat, unitStats, entity, entityManager, playerId);
-                }
+                
             }
 
-            public static void AdjustStatWithCap(FocusToStatMap.StatType stat, UnitStats unitStats, Entity entity, EntityManager entityManager, ulong steamid)
+            public static void AdjustStatWithCap(FocusToStatMap.StatType stat, UnitStats unitStats, Entity entity, EntityManager entityManager, ulong steamid, PetExperienceProfile profile)
             {
                 float increase = StatIncreases.Increases[stat];
                 float cap = StatCaps.Caps[stat];
@@ -306,7 +290,8 @@ namespace VCreate.Hooks
                         break;
 
                     case FocusToStatMap.StatType.PrimaryAttackSpeed:
-                        unitStats.PrimaryAttackSpeed._Value += increase;
+                        unitStats.PrimaryAttackSpeed._Value = profile.Stats[2] + increase;
+                        profile.Stats[2] += increase;
                         if (unitStats.PrimaryAttackSpeed._Value > cap)
                         {
                             unitStats.PrimaryAttackSpeed._Value = cap;
@@ -323,7 +308,8 @@ namespace VCreate.Hooks
                             ServerChatUtils.SendSystemMessageToClient(entityManager, entity.Read<PlayerCharacter>().UserEntity.Read<User>(), "Power can't go any higher!");
                         }
                         entity.Write(unitStats);
-                        unitStats.SpellPower._Value += increase;
+                        unitStats.SpellPower._Value = profile.Stats[4] + increase;
+                        profile.Stats[4] += increase;
                         if (unitStats.SpellPower._Value > cap)
                         {
                             unitStats.SpellPower._Value = cap;
