@@ -115,6 +115,26 @@ namespace VCreate.Hooks
 
                 if (profile.CurrentExperience >= toNext && profile.Level < 80)
                 {
+                    var buffs = pet.ReadBuffer<BuffBuffer>();
+                    foreach (var buff in buffs)
+                    {
+                        if (buff.PrefabGuid.GuidHash == -491593410 || buff.PrefabGuid.GuidHash == -429891372 || buff.PrefabGuid.GuidHash == 1050324275)
+                        {
+                            SystemPatchUtil.Destroy(buff.Entity);
+                        }
+                    }
+                    EntityCommandBufferSystem entityCommandBufferSystem = VWorld.Server.GetExistingSystem<EntityCommandBufferSystem>();
+                    EntityCommandBuffer entityCommandBuffer = entityCommandBufferSystem.CreateCommandBuffer();
+                    ServerGameManager serverGameManager = VWorld.Server.GetExistingSystem<ServerScriptMapper>()._ServerGameManager;
+                    BuffUtility.BuffSpawner buffSpawner = BuffUtility.BuffSpawner.Create(serverGameManager);
+
+                    PrefabGUID bloodrage = new(-491593410);
+                    PrefabGUID powersurge = new(-429891372);
+                    PrefabGUID aegis = new(1050324275);
+
+                    BuffUtility.TryRemoveBuff(ref buffSpawner, entityCommandBuffer, bloodrage, pet);
+                    BuffUtility.TryRemoveBuff(ref buffSpawner, entityCommandBuffer, powersurge, pet);
+                    BuffUtility.TryRemoveBuff(ref buffSpawner, entityCommandBuffer, aegis, pet);
                     UpdatePetLevelAndStats(profile, pet, owner, profiles);
                 }
                 else
@@ -128,30 +148,12 @@ namespace VCreate.Hooks
 
             public static void UpdatePetLevelAndStats(PetExperienceProfile profile, Entity follower, Entity killer, Dictionary<string, PetExperienceProfile> profiles)
             {
-                /*
-                EntityCommandBufferSystem entityCommandBufferSystem = VWorld.Server.GetExistingSystem<EntityCommandBufferSystem>();
-                EntityCommandBuffer entityCommandBuffer = entityCommandBufferSystem.CreateCommandBuffer();
-                ServerGameManager serverGameManager = VWorld.Server.GetExistingSystem<ServerScriptMapper>()._ServerGameManager;
-                BuffUtility.BuffSpawner buffSpawner = BuffUtility.BuffSpawner.Create(serverGameManager);
                 
-                PrefabGUID bloodrage = new(-491593410);
-                PrefabGUID powersurge = new(-429891372);
-                PrefabGUID aegis = new(1050324275);
-
-                BuffUtility.TryRemoveBuff(ref buffSpawner, entityCommandBuffer, bloodrage, follower);
-                BuffUtility.TryRemoveBuff(ref buffSpawner, entityCommandBuffer, powersurge, follower);
-                BuffUtility.TryRemoveBuff(ref buffSpawner, entityCommandBuffer, aegis, follower);
-                */
+                
+                
 
                 profile.Level++;
-                var buffs = follower.ReadBuffer<BuffBuffer>();
-                foreach(var buff in buffs)
-                {
-                    if (buff.PrefabGuid.GuidHash == -491593410 || buff.PrefabGuid.GuidHash == -429891372 || buff.PrefabGuid.GuidHash == 1050324275)
-                    {
-                        SystemPatchUtil.Destroy(buff.Entity);
-                    }
-                }
+                
                 Plugin.Log.LogInfo("Pet level up! Saving stats.");
                 follower.Write<UnitLevel>(new UnitLevel { Level = profile.Level });
                 UnitStatSet(follower); 

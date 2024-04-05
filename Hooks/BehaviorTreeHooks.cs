@@ -145,7 +145,7 @@ public static class BehaviourTreeStateChangedEventSystemPatch
                     var distanceMagnitude = math.length(distance);
 
                     // If distance is less than 2, set to idle
-                    if (distanceMagnitude < 2f)
+                    if (distanceMagnitude < 3f)
                     {
                         BehaviourTreeState behaviourTreeStateChangedEvent = entity.Read<BehaviourTreeState>();
                         behaviourTreeStateChangedEvent.Value = GenericEnemyState.Idle;
