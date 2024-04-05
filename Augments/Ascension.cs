@@ -180,9 +180,9 @@ namespace VPlus.Augments
                 .Select((id, index) => new PrefabGUID(id))
                 .GroupBy(guid => guid)
                 .ToDictionary(group => group.Key, group => group.Count());
-            
-           
 
+
+            bool itemCheck = true;
             // Check if all required items with their quantities are present in the inventory
             foreach (var requirement in requiredQuantities)
             {
@@ -190,11 +190,24 @@ namespace VPlus.Augments
                 if (serverGameManager.GetInventoryItemCount(characterEntity, requirement.Key) < requirement.Value)
                 {
                     ctx.Reply($"You do not have enough of the required item: {requirement.Key}x{requirement.Value}");
-                    return false;
+                    itemCheck = false;
+                    break;
                 }
             }
-
-            return true;
+            if (itemCheck)
+            {
+                foreach (var requirement in requiredQuantities)
+                {
+                    if (requirement.Key.GuidHash == 0) continue;
+                    serverGameManager.TryRemoveInventoryItem(characterEntity, requirement.Key, requirement.Value);
+                }
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+            
         }
     }
 }
