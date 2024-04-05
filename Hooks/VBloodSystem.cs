@@ -37,7 +37,6 @@ namespace VPlus.Hooks
 
                 foreach (var _event in __instance.EventList)
                 {
-                    
                     if (!VWorld.Server.EntityManager.TryGetComponentData(_event.Target, out PlayerCharacter playerData)) continue;
 
                     Entity _vblood = __instance._PrefabCollectionSystem._PrefabGuidToEntityMap[_event.Source];
@@ -108,7 +107,6 @@ namespace VPlus.Hooks
                                     }
                                     else
                                     {
-
                                         // create new data then add points
                                         RankData rankData = new(0, GetPoints(playerLevel, unitLevel, component), [], 0, [0, 0], "none", false);
                                         Databases.playerRanks.Add(SteamID, rankData);
@@ -201,8 +199,7 @@ namespace VPlus.Hooks
                 string toSend = "You've earned " + colorString + " rank points!";
                 ServerChatUtils.SendSystemMessageToClient(entityManager, user, toSend);
                 counter = 0;
-                
-                
+
                 return points;
             }
         }
@@ -238,6 +235,5 @@ namespace VPlus.Hooks
                 return position.x >= minX && position.x <= maxX && position.z >= minZ && position.z <= maxZ;
             }
         }
-
     }
 }
