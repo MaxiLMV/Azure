@@ -28,7 +28,6 @@ namespace VPlus.Core.Commands
 {
     public class ChatCommands
     {
-        private static bool sunToggle = true;
         private static readonly string redV = VPlus.Core.Toolbox.FontColors.Red("V");
 
         [Command(name: "starterKit", shortHand: "start", adminOnly: false, usage: ".start", description: "Provides starting kit.")]
