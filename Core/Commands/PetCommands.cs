@@ -650,7 +650,7 @@ namespace VCreate.Core.Commands
             }
         }
 
-        [Command(name: "beginTrade", shortHand: "trade", adminOnly: true, usage: ".trade [Name]", description: "Trades unlocked unit, including shiny buff, to other players.")]
+        [Command(name: "beginTrade", shortHand: "trade", adminOnly: false, usage: ".trade [Name]", description: "Trades unlocked unit, including shiny buff, to other players.")]
         public static void StartTrade(ChatCommandContext ctx, string name)
         {
             EntityManager entityManager = VWorld.Server.EntityManager;
@@ -673,69 +673,50 @@ namespace VCreate.Core.Commands
             ulong traderId = player.SteamID;
 
             // verify first user has familiar set and active (not in stasis) and prevent from dismissing until trade is concluded, do same on other end
-            if (DataStructures.PlayerPetsMap.TryGetValue(starterId, out var keyValuePairs))
+
+            if (PetCommands.PlayerFamiliarStasisMap.TryGetValue(starterId, out var value))
             {
-                var keys = keyValuePairs.Keys;
-                foreach (var key in keys)
+                if (value.IsInStasis)
                 {
-                    if (keyValuePairs.TryGetValue(key, out PetExperienceProfile profile) && profile.Active)
-                    {
-                        if (PetCommands.PlayerFamiliarStasisMap.TryGetValue(starterId, out var value))
-                        {
-                            if (value.IsInStasis)
-                            {
-                                ctx.Reply("You have a familiar in stasis. Summon it before trading.");
-                                return;
-                            }
-                        }
+                    ctx.Reply("You have a familiar in stasis. Summon it before trading.");
+                    return;
+                }
+            }
 
-                        Entity entity = FindPlayerFamiliar(ctx.Event.SenderCharacterEntity);
-                        if (entity.Equals(Entity.Null))
-                        {
-                            ctx.Reply("Couldn't find active familiar to trade.");
-                            return;
-                        }
+            Entity entity = FindPlayerFamiliar(ctx.Event.SenderCharacterEntity);
+            if (entity.Equals(Entity.Null))
+            {
+                ctx.Reply("Couldn't find active familiar to trade.");
+                return;
+            }
 
-                        // set trading flag and set with whom
-                        if (DataStructures.PlayerSettings.TryGetValue(starterId, out var settings))
-                        {
-                            // notify other player after checking if both players are close enough
-                            var distance = ctx.Event.SenderCharacterEntity.Read<Translation>().Value - player.Character.Read<Translation>().Value;
-                            // Calculate the magnitude of the distance vector to get the scalar distance
-                            var distanceMagnitude = math.length(distance);
+            // set trading flag and set with whom
+            if (DataStructures.PlayerSettings.TryGetValue(starterId, out var settings))
+            {
+                // notify other player after checking if both players are close enough
+                var distance = ctx.Event.SenderCharacterEntity.Read<Translation>().Value - player.Character.Read<Translation>().Value;
+                // Calculate the magnitude of the distance vector to get the scalar distance
+                var distanceMagnitude = math.length(distance);
 
-                            // If distance is less than 2, set to idle
-                            if (distanceMagnitude > 15f)
-                            {
-                                // too far away, cancel trade
-                                ctx.Reply("You are too far away to trade with that player. Get closer and try again.");
-                                return;
-                            }
-                            else
-                            {
-                                settings.Trading = true;
-                                settings.With = traderId;
-                                DataStructures.SavePlayerSettings();
-                                string starterName = ctx.Event.User.CharacterName.ToString();
-                                ServerChatUtils.SendSystemMessageToClient(entityManager, player.User.Read<User>(), $"{starterName} would like to trade their currently active familiar with yours. Make sure your familiar is following and active before accepting and stay nearby. Use .cancel to decline and .accept to trade.");
-                            }
-                        }
-                        else
-                        {
-                            ctx.Reply("Couldn't find data to start trade.");
-                            return;
-                        }
-                    }
-                    else
-                    {
-                        ctx.Reply("You don't have an active familiar to trade.");
-                        return;
-                    }
+                // If distance is less than 2, set to idle
+                if (distanceMagnitude > 15f)
+                {
+                    // too far away, cancel trade
+                    ctx.Reply("You are too far away to trade with that player. Get closer and try again.");
+                    return;
+                }
+                else
+                {
+                    settings.Trading = true;
+                    settings.With = traderId;
+                    DataStructures.SavePlayerSettings();
+                    string starterName = ctx.Event.User.CharacterName.ToString();
+                    ServerChatUtils.SendSystemMessageToClient(entityManager, player.User.Read<User>(), $"{starterName} would like to trade their currently active familiar with yours. Make sure your familiar is following and active before accepting and stay nearby. Use .cancel to decline and .accept to trade.");
                 }
             }
         }
 
-        [Command(name: "cancelTrade", shortHand: "cancel", adminOnly: true, usage: ".cancel", description: "Cancels trade if you started it, declines trade if you didn't start it.")]
+        [Command(name: "cancelTrade", shortHand: "cancel", adminOnly: false, usage: ".cancel", description: "Cancels trade if you started it, declines trade if you didn't start it.")]
         public static void CancelTrade(ChatCommandContext ctx)
         {
             ulong platformId = ctx.User.PlatformId;
@@ -776,7 +757,7 @@ namespace VCreate.Core.Commands
             }
         }
 
-        [Command(name: "acceptTrade", shortHand: "accept", adminOnly: true, usage: ".accept", description: "Accepts proposed trade.")]
+        [Command(name: "acceptTrade", shortHand: "accept", adminOnly: false, usage: ".accept", description: "Accepts proposed trade.")]
         public static void AcceptTrade(ChatCommandContext ctx)
         {
             EntityManager entityManager = VWorld.Server.EntityManager;
@@ -785,271 +766,148 @@ namespace VCreate.Core.Commands
             {
                 if (DataStructures.PlayerSettings[key].Trading && DataStructures.PlayerSettings[key].With == accepterId)
                 {
-                    if (DataStructures.PlayerPetsMap.TryGetValue(accepterId, out var keyValuePairs))
+                    if (PetCommands.PlayerFamiliarStasisMap.TryGetValue(accepterId, out var value))
                     {
-                        var keys = keyValuePairs.Keys;
-                        foreach (var pick in keys)
+                        if (value.IsInStasis)
                         {
-                            if (keyValuePairs.TryGetValue(pick, out PetExperienceProfile profile) && profile.Active)
+                            ctx.Reply("You have a familiar in stasis. Summon it before accepting the trade.");
+                            return;
+                        }
+                    }
+
+                    Entity accepterFamiliar = FindPlayerFamiliar(ctx.Event.SenderCharacterEntity);
+                    if (accepterFamiliar.Equals(Entity.Null))
+                    {
+                        ctx.Reply("Couldn't find active familiar to trade.");
+                        return;
+                    }
+
+                    // set trading flag and set with whom
+                    if (DataStructures.PlayerSettings.TryGetValue(accepterId, out var settings))
+                    {
+                        UserModel userModel = VRising.GameData.GameData.Users.GetUserByPlatformId(key);
+                        Entity character = userModel.FromCharacter.Character;
+                        // notify other player after checking if both players are close enough
+                        Entity traderFamiliar = FindPlayerFamiliar(character);
+                        if (traderFamiliar.Equals(Entity.Null))
+                        {
+                            ctx.Reply("Couldn't find familiars to trade.");
+                            return;
+                        }
+                        var distance = ctx.Event.SenderCharacterEntity.Read<Translation>().Value - character.Read<Translation>().Value;
+                        // Calculate the magnitude of the distance vector to get the scalar distance
+                        var distanceMagnitude = math.length(distance);
+
+                        if (distanceMagnitude > 15f)
+                        {
+                            // too far away, cancel trade
+                            ctx.Reply("You are too far away to trade with that player. Get closer and try again.");
+                            return;
+                        }
+                        else
+                        {
+                            settings.Trading = true;
+                            settings.With = key;
+                            DataStructures.SavePlayerSettings();
+                            string accepterName = ctx.Event.User.CharacterName.ToString();
+                            ServerChatUtils.SendSystemMessageToClient(entityManager, userModel.FromCharacter.User.Read<User>(), $"{accepterName} has accepted your trade offer, trading familiars...");
+
+                            // begin by swapping the unlock entries in the unlocked pets map, also transfer shiny buffs if applicable
+                            if (DataStructures.UnlockedPets.TryGetValue(accepterId, out var accepterData) && DataStructures.UnlockedPets.TryGetValue(key, out var traderData))
                             {
-                                if (PetCommands.PlayerFamiliarStasisMap.TryGetValue(accepterId, out var value))
+                                PrefabGUID accepterFamiliarGuid = accepterFamiliar.Read<PrefabGUID>();
+                                PrefabGUID traderFamiliarGuid = traderFamiliar.Read<PrefabGUID>();
+                                if (accepterData.Contains(accepterFamiliarGuid.GuidHash) && traderData.Contains(traderFamiliarGuid.GuidHash))
                                 {
-                                    if (value.IsInStasis)
+                                    if (DataStructures.PetBuffMap.TryGetValue(accepterId, out var accepterBuffData) && DataStructures.PetBuffMap.TryGetValue(key, out var traderBuffData))
                                     {
-                                        ctx.Reply("You have a familiar in stasis. Summon it before accepting the trade.");
-                                        return;
-                                    }
-                                }
-
-                                Entity accepterFamiliar = FindPlayerFamiliar(ctx.Event.SenderCharacterEntity);
-                                if (accepterFamiliar.Equals(Entity.Null))
-                                {
-                                    ctx.Reply("Couldn't find active familiar to trade.");
-                                    return;
-                                }
-
-                                // set trading flag and set with whom
-                                if (DataStructures.PlayerSettings.TryGetValue(accepterId, out var settings))
-                                {
-                                    UserModel userModel = VRising.GameData.GameData.Users.GetUserByPlatformId(key);
-                                    Entity character = userModel.FromCharacter.Character;
-                                    // notify other player after checking if both players are close enough
-                                    Entity traderFamiliar = FindPlayerFamiliar(character);
-                                    if (traderFamiliar.Equals(Entity.Null))
-                                    {
-                                        ctx.Reply("Couldn't find familiars to trade.");
-                                        return;
-                                    }
-                                    var distance = ctx.Event.SenderCharacterEntity.Read<Translation>().Value - character.Read<Translation>().Value;
-                                    // Calculate the magnitude of the distance vector to get the scalar distance
-                                    var distanceMagnitude = math.length(distance);
-
-                                    if (distanceMagnitude > 15f)
-                                    {
-                                        // too far away, cancel trade
-                                        ctx.Reply("You are too far away to trade with that player. Get closer and try again.");
-                                        return;
-                                    }
-                                    else
-                                    {
-                                        settings.Trading = true;
-                                        settings.With = key;
-                                        DataStructures.SavePlayerSettings();
-                                        string accepterName = ctx.Event.User.CharacterName.ToString();
-                                        ServerChatUtils.SendSystemMessageToClient(entityManager, userModel.FromCharacter.User.Read<User>(), $"{accepterName} has accepted your trade offer, trading familiars...");
-
-                                        // begin by swapping the unlock entries in the unlocked pets map, also transfer shiny buffs if applicable
-                                        if (DataStructures.UnlockedPets.TryGetValue(accepterId, out var accepterData) && DataStructures.UnlockedPets.TryGetValue(key, out var traderData))
+                                        try
                                         {
-                                            PrefabGUID accepterFamiliarGuid = accepterFamiliar.Read<PrefabGUID>();
-                                            PrefabGUID traderFamiliarGuid = traderFamiliar.Read<PrefabGUID>();
-                                            if (accepterData.Contains(accepterFamiliarGuid.GuidHash) && traderData.Contains(traderFamiliarGuid.GuidHash))
+                                            if (accepterBuffData.TryGetValue(accepterFamiliarGuid.GuidHash, out var accepterBuffs) && traderBuffData.TryGetValue(traderFamiliarGuid.GuidHash, out var traderBuffs))
                                             {
-                                                if (DataStructures.PetBuffMap.TryGetValue(accepterId, out var accepterBuffData) && DataStructures.PetBuffMap.TryGetValue(key, out var traderBuffData))
+                                                if (accepterBuffs.TryGetValue("Shiny", out var accepterShiny))
                                                 {
-                                                    try
-                                                    {
-                                                        if (accepterBuffData.TryGetValue(accepterFamiliarGuid.GuidHash, out var accepterBuffs) && traderBuffData.TryGetValue(traderFamiliarGuid.GuidHash, out var traderBuffs))
-                                                        {
-                                                            if (accepterBuffs.TryGetValue("Shiny", out var accepterShiny))
-                                                            {
-                                                                traderBuffs["Shiny"] = accepterShiny;
-                                                                traderBuffData[accepterFamiliarGuid.GuidHash] = traderBuffs;
-                                                                DataStructures.PetBuffMap[key] = traderBuffData;
-                                                                DataStructures.SavePetBuffMap();
-                                                                // leave profiles alone
-                                                            }
-                                                            if (traderBuffs.TryGetValue("Shiny", out var traderShiny))
-                                                            {
-                                                                accepterBuffs["Shiny"] = traderShiny;
-                                                                accepterBuffData[traderFamiliarGuid.GuidHash] = accepterBuffs;
-                                                                DataStructures.PetBuffMap[accepterId] = accepterBuffData;
-                                                                DataStructures.SavePetBuffMap();
-                                                                // leave profiles alone
-                                                            }
+                                                    traderBuffs["Shiny"] = accepterShiny;
+                                                    traderBuffData[accepterFamiliarGuid.GuidHash] = traderBuffs;
+                                                    DataStructures.PetBuffMap[key] = traderBuffData;
+                                                    DataStructures.SavePetBuffMap();
+                                                    // leave profiles alone
+                                                }
+                                                if (traderBuffs.TryGetValue("Shiny", out var traderShiny))
+                                                {
+                                                    accepterBuffs["Shiny"] = traderShiny;
+                                                    accepterBuffData[traderFamiliarGuid.GuidHash] = accepterBuffs;
+                                                    DataStructures.PetBuffMap[accepterId] = accepterBuffData;
+                                                    DataStructures.SavePetBuffMap();
+                                                    // leave profiles alone
+                                                }
 
-                                                            if (DataStructures.PlayerSettings.TryGetValue(key, out var traderSettings))
-                                                            {
-                                                                accepterData.Remove(accepterFamiliarGuid.GuidHash);
-                                                                traderData.Remove(traderFamiliarGuid.GuidHash);
-                                                                accepterData.Add(traderFamiliarGuid.GuidHash);
-                                                                traderData.Add(accepterFamiliarGuid.GuidHash);
-                                                                DataStructures.UnlockedPets[accepterId] = accepterData;
-                                                                DataStructures.UnlockedPets[key] = traderData;
-                                                                DataStructures.SaveUnlockedPets();
+                                                if (DataStructures.PlayerSettings.TryGetValue(key, out var traderSettings))
+                                                {
+                                                    accepterData.Remove(accepterFamiliarGuid.GuidHash);
+                                                    traderData.Remove(traderFamiliarGuid.GuidHash);
+                                                    accepterData.Add(traderFamiliarGuid.GuidHash);
+                                                    traderData.Add(accepterFamiliarGuid.GuidHash);
+                                                    DataStructures.UnlockedPets[accepterId] = accepterData;
+                                                    DataStructures.UnlockedPets[key] = traderData;
+                                                    DataStructures.SaveUnlockedPets();
 
-                                                                settings.Trading = false;
-                                                                settings.With = 0;
+                                                    settings.Trading = false;
+                                                    settings.With = 0;
 
-                                                                traderSettings.Trading = false;
-                                                                traderSettings.With = 0;
+                                                    traderSettings.Trading = false;
+                                                    traderSettings.With = 0;
 
-                                                                DataStructures.SavePlayerSettings();
-                                                                SystemPatchUtil.Destroy(accepterFamiliar);
-                                                                SystemPatchUtil.Destroy(traderFamiliar);
-                                                                ServerChatUtils.SendSystemMessageToClient(entityManager, userModel.FromCharacter.User.Read<User>(), "Trade successful.");
-                                                                ctx.Reply("Trade successful.");
-                                                            }
-                                                            else
-                                                            {
-                                                                ctx.Reply("Couldn't verify trade.");
-                                                                return;
-                                                            }
-                                                        }
-                                                    }
-                                                    catch (Exception e)
-                                                    {
-                                                        ctx.Reply("Couldn't complete trade, cancelling...");
-                                                        ServerChatUtils.SendSystemMessageToClient(entityManager, userModel.FromCharacter.User.Read<User>(), "Couldn't complete trade, cancelling...");
-                                                        settings.Trading = false;
-                                                        settings.With = 0;
-                                                        if (DataStructures.PlayerSettings.TryGetValue(key, out var traderSettings))
-                                                        {
-                                                            traderSettings.Trading = false;
-                                                            traderSettings.With = 0;
-                                                        }
-                                                        DataStructures.SavePlayerSettings();
-                                                        return;
-                                                    }
+                                                    DataStructures.SavePlayerSettings();
+                                                    SystemPatchUtil.Destroy(accepterFamiliar);
+                                                    SystemPatchUtil.Destroy(traderFamiliar);
+                                                    ServerChatUtils.SendSystemMessageToClient(entityManager, userModel.FromCharacter.User.Read<User>(), "Trade successful.");
+                                                    ctx.Reply("Trade successful.");
+                                                }
+                                                else
+                                                {
+                                                    ctx.Reply("Couldn't verify trade.");
+                                                    return;
                                                 }
                                             }
-                                            else
-                                            {
-                                                ctx.Reply("Couldn't find familiars to trade.");
-                                                return;
-                                            }
                                         }
-                                        else
+                                        catch (Exception e)
                                         {
-                                            ctx.Reply("Couldn't find data to start trade.");
+                                            ctx.Reply("Couldn't complete trade, cancelling...");
+                                            ServerChatUtils.SendSystemMessageToClient(entityManager, userModel.FromCharacter.User.Read<User>(), "Couldn't complete trade, cancelling...");
+                                            settings.Trading = false;
+                                            settings.With = 0;
+                                            if (DataStructures.PlayerSettings.TryGetValue(key, out var traderSettings))
+                                            {
+                                                traderSettings.Trading = false;
+                                                traderSettings.With = 0;
+                                            }
+                                            DataStructures.SavePlayerSettings();
                                             return;
                                         }
                                     }
                                 }
                                 else
                                 {
-                                    ctx.Reply("Couldn't find data to start trade.");
+                                    ctx.Reply("Couldn't find familiars to trade.");
                                     return;
                                 }
                             }
                             else
                             {
-                                ctx.Reply("You don't have an active familiar to trade.");
+                                ctx.Reply("Couldn't find data to start trade.");
                                 return;
                             }
                         }
                     }
-                }
-                else
-                {
-                    ctx.Reply("Couldn't find trade to accept.");
-                    return;
+                    else
+                    {
+                        ctx.Reply("Couldn't find data to start trade.");
+                        return;
+                    }
                 }
             }
         }
-
-        /*
-        public static void MethodFive(ChatCommandContext ctx)
-        {
-            ulong platformId = ctx.User.PlatformId;
-            var buffs = ctx.Event.SenderCharacterEntity.ReadBuffer<BuffBuffer>();
-
-            foreach (var buff in buffs)
-            {
-                if (buff.PrefabGuid.GuidHash == VCreate.Data.Prefabs.Buff_InCombat.GuidHash)
-                {
-                    ctx.Reply("You cannot toggle combat mode during combat.");
-                    return;
-                }
-            }
-
-            if (DataStructures.PlayerPetsMap.TryGetValue(platformId, out Dictionary<string, PetExperienceProfile> data))
-            {
-                ServerGameManager serverGameManager = VWorld.Server.GetExistingSystem<ServerScriptMapper>()._ServerGameManager;
-                BuffUtility.BuffSpawner buffSpawner = BuffUtility.BuffSpawner.Create(serverGameManager);
-                EntityCommandBufferSystem entityCommandBufferSystem = VWorld.Server.GetExistingSystem<EntityCommandBufferSystem>();
-                EntityCommandBuffer entityCommandBuffer = entityCommandBufferSystem.CreateCommandBuffer();
-                Entity familiar = FindPlayerFamiliar(ctx.Event.SenderCharacterEntity);
-                if (familiar.Equals(Entity.Null))
-                {
-                    ctx.Reply("Summon your familiar before toggling this.");
-                    return;
-                }
-                if (data.TryGetValue(familiar.Read<PrefabGUID>().LookupName().ToString(), out PetExperienceProfile profile) && profile.Active)
-                {
-                    profile.Combat = !profile.Combat; // this will be false when first triggered
-                    FactionReference factionReference = familiar.Read<FactionReference>();
-                    PrefabGUID ignored = new(-1430861195);
-                    PrefabGUID player = new(1106458752);
-                    if (!profile.Combat)
-                    {
-                        factionReference.FactionGuid._Value = ignored;
-                    }
-                    else
-                    {
-                        factionReference.FactionGuid._Value = player;
-                    }
-
-                    //familiar.Write(new Immortal { IsImmortal = !profile.Combat });
-
-                    familiar.Write(factionReference);
-                    BufferFromEntity<BuffBuffer> bufferFromEntity = VWorld.Server.EntityManager.GetBufferFromEntity<BuffBuffer>();
-                    if (profile.Combat)
-                    {
-                        //BuffUtility.TryRemoveBuff(ref buffSpawner, entityCommandBuffer, VCreate.Data.Prefabs.AB_Charm_Active_Human_Buff, familiar);
-                        AggroConsumer aggroConsumer = familiar.Read<AggroConsumer>();
-                        aggroConsumer.Active = ModifiableBool.CreateFixed(true);
-                        familiar.Write(aggroConsumer);
-
-                        Aggroable aggroable = familiar.Read<Aggroable>();
-                        aggroable.Value = ModifiableBool.CreateFixed(true);
-                        aggroable.AggroFactor._Value = 1f;
-                        aggroable.DistanceFactor._Value = 1f;
-                        familiar.Write(aggroable);
-                        BuffUtility.TryRemoveBuff(ref buffSpawner, entityCommandBuffer, VCreate.Data.Prefabs.Admin_Invulnerable_Buff, familiar);
-                        BuffUtility.TryRemoveBuff(ref buffSpawner, entityCommandBuffer, VCreate.Data.Prefabs.AB_Militia_HoundMaster_QuickShot_Buff, familiar);
-                    }
-                    else
-                    {
-                        AggroConsumer aggroConsumer = familiar.Read<AggroConsumer>();
-                        aggroConsumer.Active = ModifiableBool.CreateFixed(false);
-                        familiar.Write(aggroConsumer);
-
-                        Aggroable aggroable = familiar.Read<Aggroable>();
-                        aggroable.Value = ModifiableBool.CreateFixed(false);
-                        aggroable.AggroFactor._Value = 0f;
-                        aggroable.DistanceFactor._Value = 0f;
-                        familiar.Write(aggroable);
-                        OnHover.BuffNonPlayer(familiar, VCreate.Data.Prefabs.Admin_Invulnerable_Buff);
-                        OnHover.BuffNonPlayer(familiar, VCreate.Data.Prefabs.AB_Militia_HoundMaster_QuickShot_Buff);
-                    }
-
-                    data[familiar.Read<PrefabGUID>().LookupName().ToString()] = profile;
-                    DataStructures.PlayerPetsMap[platformId] = data;
-                    DataStructures.SavePetExperience();
-                    if (!profile.Combat)
-                    {
-                        string disabledColor = VCreate.Core.Toolbox.FontColors.Pink("disabled");
-                        ctx.Reply($"Combat for familiar is {disabledColor}. It cannot die and won't participate, however, no experience will be gained.");
-                    }
-                    else
-                    {
-                        string enabledColor = VCreate.Core.Toolbox.FontColors.Green("enabled");
-                        ctx.Reply($"Combat for familiar is {enabledColor}. It will fight till glory or death and gain experience.");
-                    }
-                }
-                else
-                {
-                    ctx.Reply("Couldn't find active familiar in followers.");
-                }
-            }
-            else
-            {
-                ctx.Reply("You don't have any familiars.");
-                return;
-            }
-        }
-        */
 
         internal struct FamiliarStasisState
         {
