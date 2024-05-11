@@ -1,9 +1,9 @@
 ﻿using System;
 using Unity.Entities;
 
-namespace VCreate.Hooks
+namespace VPlus.Data
 {
-	// Token: 0x02000018 RID: 24
-	// (Invoke) Token: 0x06000082 RID: 130
+	// Token: 0x02000010 RID: 16
+	// (Invoke) Token: 0x06000035 RID: 53
 	public delegate void OnGameDataInitializedEventHandler(World world);
 }

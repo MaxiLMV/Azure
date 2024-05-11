@@ -11,70 +11,56 @@ using Bloodstone.API;
 using HarmonyLib;
 using Unity.Entities;
 using VampireCommandFramework;
-using VCreate.Core.Toolbox;
-using VCreate.Hooks;
-using VCreate.Systems;
+using VPlus.Augments;
+using VPlus.Augments.Rank;
+using VPlus.Data;
 using VRising.GameData;
 
-namespace VCreate.Core
+namespace VPlus.Core
 {
-	// Token: 0x02000020 RID: 32
-	[BepInPlugin("VCreate", "VCreate", "1.0.1")]
+	// Token: 0x02000012 RID: 18
+	[BepInPlugin("VPlus", "VPlus", "1.0.0")]
 	[BepInDependency("gg.deca.Bloodstone", BepInDependency.DependencyFlags.HardDependency)]
 	[BepInDependency("gg.deca.VampireCommandFramework", BepInDependency.DependencyFlags.HardDependency)]
 	public class Plugin : BasePlugin, IRunOnInitialized
 	{
-		// Token: 0x1700001A RID: 26
-		// (get) Token: 0x060000A3 RID: 163 RVA: 0x0004DD01 File Offset: 0x0004BF01
-		// (set) Token: 0x060000A4 RID: 164 RVA: 0x0004DD08 File Offset: 0x0004BF08
+		// Token: 0x17000001 RID: 1
+		// (get) Token: 0x0600003C RID: 60 RVA: 0x00004140 File Offset: 0x00002340
+		// (set) Token: 0x0600003D RID: 61 RVA: 0x00004147 File Offset: 0x00002347
 		internal static Plugin Instance { get; private set; }
 
-		// Token: 0x1700001B RID: 27
-		// (get) Token: 0x060000A5 RID: 165 RVA: 0x0004DD10 File Offset: 0x0004BF10
-		public new static ManualLogSource Log
-		{
-			get
-			{
-				return Plugin.Logger;
-			}
-		}
-
-		// Token: 0x060000A6 RID: 166 RVA: 0x0004DD18 File Offset: 0x0004BF18
+		// Token: 0x0600003E RID: 62 RVA: 0x00004150 File Offset: 0x00002350
 		public override void Load()
 		{
 			Plugin.Instance = this;
 			Plugin.Logger = base.Log;
 			this._harmony = Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly(), null);
 			CommandRegistry.RegisterAll();
-			Plugin.InitConfig();
+			this.InitConfig();
 			ServerEvents.OnGameDataInitialized += this.GameDataOnInitialize;
 			GameData.OnInitialize += new OnGameDataInitializedEventHandler(this.GameDataOnInitialize);
 			Plugin.LoadData();
 			ManualLogSource logger = Plugin.Logger;
 			bool flag;
-			BepInExInfoLogInterpolatedStringHandler bepInExInfoLogInterpolatedStringHandler = new BepInExInfoLogInterpolatedStringHandler(18, 1, ref flag);
+			BepInExInfoLogInterpolatedStringHandler bepInExInfoLogInterpolatedStringHandler = new BepInExInfoLogInterpolatedStringHandler(11, 1, ref flag);
 			if (flag)
 			{
-				bepInExInfoLogInterpolatedStringHandler.AppendLiteral("Plugin ");
-				bepInExInfoLogInterpolatedStringHandler.AppendFormatted<string>("VCreate");
+				bepInExInfoLogInterpolatedStringHandler.AppendFormatted<string>("VPlus");
 				bepInExInfoLogInterpolatedStringHandler.AppendLiteral(" is loaded!");
 			}
 			logger.LogInfo(bepInExInfoLogInterpolatedStringHandler);
-			Dictionary<ulong, Dictionary<string, PetExperienceProfile>>.KeyCollection keys = DataStructures.PlayerPetsMap.Keys;
 		}
 
-		// Token: 0x060000A7 RID: 167 RVA: 0x0004DDBF File Offset: 0x0004BFBF
+		// Token: 0x0600003F RID: 63 RVA: 0x000041E2 File Offset: 0x000023E2
 		private void GameDataOnInitialize(World world)
 		{
+			ArmorModifierSystem.HatsOn();
+			ArmorModifierSystem.ModifyArmorPrefabEquipmentSet();
+			ArmorModifierSystem.IncreaseOnyx();
 		}
 
-		// Token: 0x060000A8 RID: 168 RVA: 0x0004DDC1 File Offset: 0x0004BFC1
-		private static void ModifyGameData()
-		{
-		}
-
-		// Token: 0x060000A9 RID: 169 RVA: 0x0004DDC3 File Offset: 0x0004BFC3
-		private static void InitConfig()
+		// Token: 0x06000040 RID: 64 RVA: 0x000041F3 File Offset: 0x000023F3
+		private void InitConfig()
 		{
 			if (!Directory.Exists(Plugin.ConfigPath))
 			{
@@ -82,174 +68,171 @@ namespace VCreate.Core
 			}
 		}
 
-		// Token: 0x060000AA RID: 170 RVA: 0x0004DDDC File Offset: 0x0004BFDC
+		// Token: 0x06000041 RID: 65 RVA: 0x0000420C File Offset: 0x0000240C
 		public override bool Unload()
 		{
+			SaveMethods.SavePlayerRanks();
+			SaveMethods.SavePlayerPrestiges();
+			SaveMethods.SavePlayerAscensions();
+			SaveMethods.SavePlayerDonators();
 			base.Config.Clear();
 			this._harmony.UnpatchSelf();
-			DataStructures.SavePlayerSettings();
 			return true;
 		}
 
-		// Token: 0x060000AB RID: 171 RVA: 0x0004DDFA File Offset: 0x0004BFFA
+		// Token: 0x06000042 RID: 66 RVA: 0x00004239 File Offset: 0x00002439
 		public void OnGameInitialized()
 		{
-			CastleTerritoryCache.Initialize();
-			Plugin.Logger.LogInfo("TerritoryCache loaded");
 		}
 
-		// Token: 0x060000AC RID: 172 RVA: 0x0004DE10 File Offset: 0x0004C010
+		// Token: 0x06000043 RID: 67 RVA: 0x0000423C File Offset: 0x0000243C
 		public static void LoadData()
 		{
-			Plugin.LoadPlayerSettings();
-			Plugin.LoadPetData();
-			Plugin.LoadUnlockedPets();
-			Plugin.LoadPetBuffMap();
-		}
-
-		// Token: 0x060000AD RID: 173 RVA: 0x0004DE28 File Offset: 0x0004C028
-		public static void LoadPlayerSettings()
-		{
-			if (!File.Exists(Plugin.PlayerSettingsJson))
+			if (!File.Exists(Plugin.PlayerPrestigesJson))
 			{
-				FileStream fileStream = File.Create(Plugin.PlayerSettingsJson);
+				FileStream fileStream = File.Create(Plugin.PlayerPrestigesJson);
 				fileStream.Dispose();
 			}
-			string json = File.ReadAllText(Plugin.PlayerSettingsJson);
+			string json = File.ReadAllText(Plugin.PlayerPrestigesJson);
+			bool flag;
 			try
 			{
-				Dictionary<ulong, Omnitool> dictionary = JsonSerializer.Deserialize<Dictionary<ulong, Omnitool>>(json, null);
-				DataStructures.PlayerSettings = (dictionary ?? new Dictionary<ulong, Omnitool>());
-				Plugin.Logger.LogWarning("PlayerSettings Populated");
+				DataStructures.playerPrestiges = JsonSerializer.Deserialize<Dictionary<ulong, PrestigeData>>(json, null);
+				Plugin.Logger.LogWarning("PlayerPrestige Populated");
 			}
 			catch (Exception t)
 			{
 				ManualLogSource logger = Plugin.Logger;
-				bool flag;
-				BepInExInfoLogInterpolatedStringHandler bepInExInfoLogInterpolatedStringHandler = new BepInExInfoLogInterpolatedStringHandler(28, 1, ref flag);
+				BepInExErrorLogInterpolatedStringHandler bepInExErrorLogInterpolatedStringHandler = new BepInExErrorLogInterpolatedStringHandler(26, 1, ref flag);
 				if (flag)
 				{
-					bepInExInfoLogInterpolatedStringHandler.AppendLiteral("No data to deserialize yet: ");
-					bepInExInfoLogInterpolatedStringHandler.AppendFormatted<Exception>(t);
+					bepInExErrorLogInterpolatedStringHandler.AppendLiteral("Error deserializing data: ");
+					bepInExErrorLogInterpolatedStringHandler.AppendFormatted<Exception>(t);
 				}
-				logger.LogInfo(bepInExInfoLogInterpolatedStringHandler);
-				DataStructures.PlayerSettings = new Dictionary<ulong, Omnitool>();
-				Plugin.Logger.LogWarning("PlayerSettings Created");
+				logger.LogError(bepInExErrorLogInterpolatedStringHandler);
+				DataStructures.playerPrestiges = new Dictionary<ulong, PrestigeData>();
+				Plugin.Logger.LogWarning("PlayerPrestige Created");
 			}
-		}
-
-		// Token: 0x060000AE RID: 174 RVA: 0x0004DEE8 File Offset: 0x0004C0E8
-		public static void LoadPetData()
-		{
-			if (!File.Exists(Plugin.PetDataJson))
+			if (!File.Exists(Plugin.PlayerRanksJson))
 			{
-				FileStream fileStream = File.Create(Plugin.PetDataJson);
-				fileStream.Dispose();
+				FileStream fileStream2 = File.Create(Plugin.PlayerRanksJson);
+				fileStream2.Dispose();
 			}
-			string json = File.ReadAllText(Plugin.PetDataJson);
+			string json2 = File.ReadAllText(Plugin.PlayerRanksJson);
 			try
 			{
-				Dictionary<ulong, Dictionary<string, PetExperienceProfile>> dictionary = JsonSerializer.Deserialize<Dictionary<ulong, Dictionary<string, PetExperienceProfile>>>(json, null);
-				DataStructures.PlayerPetsMap = (dictionary ?? new Dictionary<ulong, Dictionary<string, PetExperienceProfile>>());
-				Plugin.Logger.LogWarning("PetData Populated");
+				DataStructures.playerRanks = JsonSerializer.Deserialize<Dictionary<ulong, RankData>>(json2, null);
+				Plugin.Logger.LogWarning("PlayerRanks Populated");
 			}
-			catch (Exception t)
+			catch (Exception t2)
 			{
-				ManualLogSource logger = Plugin.Logger;
-				bool flag;
-				BepInExInfoLogInterpolatedStringHandler bepInExInfoLogInterpolatedStringHandler = new BepInExInfoLogInterpolatedStringHandler(28, 1, ref flag);
+				ManualLogSource logger2 = Plugin.Logger;
+				BepInExErrorLogInterpolatedStringHandler bepInExErrorLogInterpolatedStringHandler = new BepInExErrorLogInterpolatedStringHandler(26, 1, ref flag);
 				if (flag)
 				{
-					bepInExInfoLogInterpolatedStringHandler.AppendLiteral("No data to deserialize yet: ");
-					bepInExInfoLogInterpolatedStringHandler.AppendFormatted<Exception>(t);
+					bepInExErrorLogInterpolatedStringHandler.AppendLiteral("Error deserializing data: ");
+					bepInExErrorLogInterpolatedStringHandler.AppendFormatted<Exception>(t2);
 				}
-				logger.LogInfo(bepInExInfoLogInterpolatedStringHandler);
-				DataStructures.PlayerPetsMap = new Dictionary<ulong, Dictionary<string, PetExperienceProfile>>();
-				Plugin.Logger.LogWarning("PetData Created");
+				logger2.LogError(bepInExErrorLogInterpolatedStringHandler);
+				DataStructures.playerRanks = new Dictionary<ulong, RankData>();
+				Plugin.Logger.LogWarning("PlayerRanks Created");
 			}
-		}
-
-		// Token: 0x060000AF RID: 175 RVA: 0x0004DFA8 File Offset: 0x0004C1A8
-		public static void LoadUnlockedPets()
-		{
-			if (!File.Exists(Plugin.UnlockedPetsJson))
+			if (!File.Exists(Plugin.PLayerAscensionsJson))
 			{
-				FileStream fileStream = File.Create(Plugin.UnlockedPetsJson);
-				fileStream.Dispose();
+				FileStream fileStream3 = File.Create(Plugin.PLayerAscensionsJson);
+				fileStream3.Dispose();
 			}
-			string json = File.ReadAllText(Plugin.UnlockedPetsJson);
+			string json3 = File.ReadAllText(Plugin.PLayerAscensionsJson);
 			try
 			{
-				Dictionary<ulong, List<int>> dictionary = JsonSerializer.Deserialize<Dictionary<ulong, List<int>>>(json, null);
-				DataStructures.UnlockedPets = (dictionary ?? new Dictionary<ulong, List<int>>());
-				Plugin.Logger.LogWarning("UnlockedPets Populated");
+				DataStructures.playerAscensions = JsonSerializer.Deserialize<Dictionary<ulong, DivineData>>(json3, null);
+				Plugin.Logger.LogWarning("PlayerDivinity populated");
 			}
-			catch (Exception t)
+			catch (Exception t3)
 			{
-				ManualLogSource logger = Plugin.Logger;
-				bool flag;
-				BepInExInfoLogInterpolatedStringHandler bepInExInfoLogInterpolatedStringHandler = new BepInExInfoLogInterpolatedStringHandler(28, 1, ref flag);
+				ManualLogSource logger3 = Plugin.Logger;
+				BepInExErrorLogInterpolatedStringHandler bepInExErrorLogInterpolatedStringHandler = new BepInExErrorLogInterpolatedStringHandler(26, 1, ref flag);
 				if (flag)
 				{
-					bepInExInfoLogInterpolatedStringHandler.AppendLiteral("No data to deserialize yet: ");
-					bepInExInfoLogInterpolatedStringHandler.AppendFormatted<Exception>(t);
+					bepInExErrorLogInterpolatedStringHandler.AppendLiteral("Error deserializing data: ");
+					bepInExErrorLogInterpolatedStringHandler.AppendFormatted<Exception>(t3);
 				}
-				logger.LogInfo(bepInExInfoLogInterpolatedStringHandler);
-				DataStructures.UnlockedPets = new Dictionary<ulong, List<int>>();
-				Plugin.Logger.LogWarning("UnlockedPets Created");
+				logger3.LogError(bepInExErrorLogInterpolatedStringHandler);
+				DataStructures.playerAscensions = new Dictionary<ulong, DivineData>();
+				Plugin.Logger.LogWarning("PlayerDivinity Created");
 			}
-		}
-
-		// Token: 0x060000B0 RID: 176 RVA: 0x0004E068 File Offset: 0x0004C268
-		public static void LoadPetBuffMap()
-		{
-			if (!File.Exists(Plugin.PetBuffMapJson))
+			if (!File.Exists(Plugin.PlayerDonatorJson))
 			{
-				FileStream fileStream = File.Create(Plugin.PetBuffMapJson);
-				fileStream.Dispose();
+				FileStream fileStream4 = File.Create(Plugin.PlayerDonatorJson);
+				fileStream4.Dispose();
 			}
-			string json = File.ReadAllText(Plugin.PetBuffMapJson);
+			string json4 = File.ReadAllText(Plugin.PlayerDonatorJson);
 			try
 			{
-				Dictionary<ulong, Dictionary<int, Dictionary<string, HashSet<int>>>> dictionary = JsonSerializer.Deserialize<Dictionary<ulong, Dictionary<int, Dictionary<string, HashSet<int>>>>>(json, null);
-				DataStructures.PetBuffMap = (dictionary ?? new Dictionary<ulong, Dictionary<int, Dictionary<string, HashSet<int>>>>());
-				Plugin.Logger.LogWarning("PetBuffMap Populated");
+				DataStructures.playerDonators = JsonSerializer.Deserialize<Dictionary<ulong, DonatorData>>(json4, null);
+				Plugin.Logger.LogWarning("PlayerDonators populated");
 			}
-			catch (Exception t)
+			catch (Exception t4)
 			{
-				ManualLogSource logger = Plugin.Logger;
-				bool flag;
-				BepInExInfoLogInterpolatedStringHandler bepInExInfoLogInterpolatedStringHandler = new BepInExInfoLogInterpolatedStringHandler(28, 1, ref flag);
+				ManualLogSource logger4 = Plugin.Logger;
+				BepInExErrorLogInterpolatedStringHandler bepInExErrorLogInterpolatedStringHandler = new BepInExErrorLogInterpolatedStringHandler(26, 1, ref flag);
 				if (flag)
 				{
-					bepInExInfoLogInterpolatedStringHandler.AppendLiteral("No data to deserialize yet: ");
-					bepInExInfoLogInterpolatedStringHandler.AppendFormatted<Exception>(t);
+					bepInExErrorLogInterpolatedStringHandler.AppendLiteral("Error deserializing data: ");
+					bepInExErrorLogInterpolatedStringHandler.AppendFormatted<Exception>(t4);
 				}
-				logger.LogInfo(bepInExInfoLogInterpolatedStringHandler);
-				DataStructures.PetBuffMap = new Dictionary<ulong, Dictionary<int, Dictionary<string, HashSet<int>>>>();
-				Plugin.Logger.LogWarning("PetBuffMap Created");
+				logger4.LogError(bepInExErrorLogInterpolatedStringHandler);
+				DataStructures.playerDonators = new Dictionary<ulong, DonatorData>();
+				Plugin.Logger.LogWarning("PlayerDonators Created");
+			}
+			if (!File.Exists(Plugin.EventDataJson))
+			{
+				FileStream fileStream5 = File.Create(Plugin.EventDataJson);
+				fileStream5.Dispose();
+			}
+			string json5 = File.ReadAllText(Plugin.EventDataJson);
+			try
+			{
+				DataStructures.eventSettings = JsonSerializer.Deserialize<Dictionary<string, List<List<int>>>>(json5, null);
+				Plugin.Logger.LogWarning("PlayerDonators populated");
+			}
+			catch (Exception t5)
+			{
+				ManualLogSource logger5 = Plugin.Logger;
+				BepInExErrorLogInterpolatedStringHandler bepInExErrorLogInterpolatedStringHandler = new BepInExErrorLogInterpolatedStringHandler(26, 1, ref flag);
+				if (flag)
+				{
+					bepInExErrorLogInterpolatedStringHandler.AppendLiteral("Error deserializing data: ");
+					bepInExErrorLogInterpolatedStringHandler.AppendFormatted<Exception>(t5);
+				}
+				logger5.LogError(bepInExErrorLogInterpolatedStringHandler);
+				DataStructures.eventSettings = new Dictionary<string, List<List<int>>>();
+				Plugin.Logger.LogWarning("PlayerDonators Created");
 			}
 		}
 
-		// Token: 0x04004490 RID: 17552
+		// Token: 0x0400001E RID: 30
 		private Harmony _harmony;
 
-		// Token: 0x04004492 RID: 17554
-		private static ManualLogSource Logger;
+		// Token: 0x04000020 RID: 32
+		public static ManualLogSource Logger;
 
-		// Token: 0x04004493 RID: 17555
-		public static readonly string ConfigPath = Path.Combine(Paths.ConfigPath, "VCreate");
+		// Token: 0x04000021 RID: 33
+		public static readonly string ConfigPath = Path.Combine(Paths.ConfigPath, "VPlus");
 
-		// Token: 0x04004494 RID: 17556
-		public static readonly string PlayerSettingsJson = Path.Combine(Plugin.ConfigPath, "player_settings.json");
+		// Token: 0x04000022 RID: 34
+		public static readonly string PlayerPrestigesJson = Path.Combine(Plugin.ConfigPath, "player_prestige.json");
 
-		// Token: 0x04004495 RID: 17557
-		public static readonly string PetDataJson = Path.Combine(Plugin.ConfigPath, "pet_data.json");
+		// Token: 0x04000023 RID: 35
+		public static readonly string PlayerRanksJson = Path.Combine(Plugin.ConfigPath, "player_ranks.json");
 
-		// Token: 0x04004496 RID: 17558
-		public static readonly string UnlockedPetsJson = Path.Combine(Plugin.ConfigPath, "unlocked_pets.json");
+		// Token: 0x04000024 RID: 36
+		public static readonly string PLayerAscensionsJson = Path.Combine(Plugin.ConfigPath, "player_divinity.json");
 
-		// Token: 0x04004497 RID: 17559
-		public static readonly string PetBuffMapJson = Path.Combine(Plugin.ConfigPath, "pet_buff_map.json");
+		// Token: 0x04000025 RID: 37
+		public static readonly string PlayerDonatorJson = Path.Combine(Plugin.ConfigPath, "player_donator.json");
+
+		// Token: 0x04000026 RID: 38
+		public static readonly string EventDataJson = Path.Combine(Plugin.ConfigPath, "event_data.json");
 	}
 }
