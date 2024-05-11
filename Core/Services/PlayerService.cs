@@ -1,207 +1,105 @@
+﻿using System;
 using ProjectM.Network;
-using Unity.Collections;
 using Unity.Entities;
 using VCreate.Core.Toolbox;
 
-namespace VCreate.Core.Services;
-
-public static class PlayerService
+namespace VCreate.Core.Services
 {
-    public struct Player
-    {
-        public string Name { get; set; }
+	// Token: 0x02000029 RID: 41
+	public static class PlayerService
+	{
+		// Token: 0x06000121 RID: 289 RVA: 0x0005089C File Offset: 0x0004EA9C
+		public static bool TryGetPlayerFromString(string input, out PlayerService.Player player)
+		{
+			foreach (Entity entity in Helper.GetEntitiesByComponentTypes<User>(true, false))
+			{
+				User user = entity.Read<User>();
+				if (user.CharacterName.ToString().ToLower() == input.ToLower())
+				{
+					player = new PlayerService.Player(entity, default(Entity));
+					return true;
+				}
+				ulong num;
+				if (ulong.TryParse(input, out num) && user.PlatformId == num)
+				{
+					player = new PlayerService.Player(entity, default(Entity));
+					return true;
+				}
+			}
+			player = default(PlayerService.Player);
+			return false;
+		}
 
-        public ulong SteamID { get; set; }
+		// Token: 0x06000122 RID: 290 RVA: 0x00050944 File Offset: 0x0004EB44
+		public static bool TryGetCharacterFromName(string input, out Entity Character)
+		{
+			PlayerService.Player player;
+			if (PlayerService.TryGetPlayerFromString(input, out player))
+			{
+				Character = player.Character;
+				return true;
+			}
+			Character = default(Entity);
+			return false;
+		}
 
-        public bool IsOnline { get; set; }
+		// Token: 0x06000123 RID: 291 RVA: 0x00050974 File Offset: 0x0004EB74
+		public static bool TryGetUserFromName(string input, out Entity User)
+		{
+			PlayerService.Player player;
+			if (PlayerService.TryGetPlayerFromString(input, out player))
+			{
+				User = player.User;
+				return true;
+			}
+			User = default(Entity);
+			return false;
+		}
 
-        public bool IsAdmin { get; set; }
+		// Token: 0x0200004A RID: 74
+		public struct Player
+		{
+			// Token: 0x1700002B RID: 43
+			// (get) Token: 0x060001DC RID: 476 RVA: 0x000563FC File Offset: 0x000545FC
+			// (set) Token: 0x060001DD RID: 477 RVA: 0x00056404 File Offset: 0x00054604
+			public string Name { readonly get; set; }
 
-        public Entity User { get; set; }
+			// Token: 0x1700002C RID: 44
+			// (get) Token: 0x060001DE RID: 478 RVA: 0x0005640D File Offset: 0x0005460D
+			// (set) Token: 0x060001DF RID: 479 RVA: 0x00056415 File Offset: 0x00054615
+			public ulong SteamID { readonly get; set; }
 
-        public Entity Character { get; set; }
+			// Token: 0x1700002D RID: 45
+			// (get) Token: 0x060001E0 RID: 480 RVA: 0x0005641E File Offset: 0x0005461E
+			// (set) Token: 0x060001E1 RID: 481 RVA: 0x00056426 File Offset: 0x00054626
+			public bool IsOnline { readonly get; set; }
 
-        public Player(Entity userEntity = default, Entity charEntity = default)
-        {
-            User = userEntity;
-            User user = User.Read<User>();
-            Character = user.LocalCharacter._Entity;
-            Name = user.CharacterName.ToString();
-            IsOnline = user.IsConnected;
-            IsAdmin = user.IsAdmin;
-            SteamID = user.PlatformId;
-        }
-    }
+			// Token: 0x1700002E RID: 46
+			// (get) Token: 0x060001E2 RID: 482 RVA: 0x0005642F File Offset: 0x0005462F
+			// (set) Token: 0x060001E3 RID: 483 RVA: 0x00056437 File Offset: 0x00054637
+			public bool IsAdmin { readonly get; set; }
 
-    public static bool TryGetPlayerFromString(string input, out Player player)
-    {
-        NativeArray<Entity>.Enumerator enumerator = Helper.GetEntitiesByComponentTypes<User>(includeDisabled: true).GetEnumerator();
-        while (enumerator.MoveNext())
-        {
-            Entity current = enumerator.Current;
-            User user = current.Read<User>();
-            if (user.CharacterName.ToString().ToLower() == input.ToLower())
-            {
-                player = new Player(current);
-                return true;
-            }
+			// Token: 0x1700002F RID: 47
+			// (get) Token: 0x060001E4 RID: 484 RVA: 0x00056440 File Offset: 0x00054640
+			// (set) Token: 0x060001E5 RID: 485 RVA: 0x00056448 File Offset: 0x00054648
+			public Entity User { readonly get; set; }
 
-            if (ulong.TryParse(input, out var result) && user.PlatformId == result)
-            {
-                player = new Player(current);
-                return true;
-            }
-        }
+			// Token: 0x17000030 RID: 48
+			// (get) Token: 0x060001E6 RID: 486 RVA: 0x00056451 File Offset: 0x00054651
+			// (set) Token: 0x060001E7 RID: 487 RVA: 0x00056459 File Offset: 0x00054659
+			public Entity Character { readonly get; set; }
 
-        player = default;
-        return false;
-    }
-
-    public static bool TryGetCharacterFromName(string input, out Entity Character)
-    {
-        if (TryGetPlayerFromString(input, out var player))
-        {
-            Character = player.Character;
-            return true;
-        }
-
-        Character = default;
-        return false;
-    }
-
-    public static bool TryGetUserFromName(string input, out Entity User)
-    {
-        if (TryGetPlayerFromString(input, out var player))
-        {
-            User = player.User;
-            return true;
-        }
-
-        User = default;
-        return false;
-    }
+			// Token: 0x060001E8 RID: 488 RVA: 0x00056464 File Offset: 0x00054664
+			public Player(Entity userEntity = default(Entity), Entity charEntity = default(Entity))
+			{
+				this.User = userEntity;
+				User user = this.User.Read<User>();
+				this.Character = user.LocalCharacter._Entity;
+				this.Name = user.CharacterName.ToString();
+				this.IsOnline = user.IsConnected;
+				this.IsAdmin = user.IsAdmin;
+				this.SteamID = user.PlatformId;
+			}
+		}
+	}
 }
-
-#if false // Decompilation log
-'342' items in cache
-------------------
-Resolve: 'System.Runtime, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a'
-Found single assembly: 'System.Runtime, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a'
-Load from: 'C:\Users\mitch\.nuget\packages\microsoft.netcore.app.ref\6.0.27\ref\net6.0\System.Runtime.dll'
-------------------
-Resolve: 'System.Collections, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a'
-Found single assembly: 'System.Collections, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a'
-Load from: 'C:\Users\mitch\.nuget\packages\microsoft.netcore.app.ref\6.0.27\ref\net6.0\System.Collections.dll'
-------------------
-Resolve: 'Unity.Entities, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null'
-Found single assembly: 'Unity.Entities, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null'
-Load from: 'C:\Users\mitch\.nuget\packages\vrising.unhollowed.client\0.6.5.57575090\lib\net6.0\Unity.Entities.dll'
-------------------
-Resolve: 'UnityEngine.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null'
-Found single assembly: 'UnityEngine.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null'
-Load from: 'C:\Users\mitch\.nuget\packages\vrising.unhollowed.client\0.6.5.57575090\lib\net6.0\UnityEngine.CoreModule.dll'
-------------------
-Resolve: 'ProjectM, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null'
-Found single assembly: 'ProjectM, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null'
-Load from: 'C:\Users\mitch\.nuget\packages\vrising.unhollowed.client\0.6.5.57575090\lib\net6.0\ProjectM.dll'
-------------------
-Resolve: '0Harmony, Version=2.10.1.0, Culture=neutral, PublicKeyToken=null'
-Found single assembly: '0Harmony, Version=2.10.1.0, Culture=neutral, PublicKeyToken=null'
-Load from: 'C:\Users\mitch\.nuget\packages\harmonyx\2.10.1\lib\netstandard2.0\0Harmony.dll'
-------------------
-Resolve: 'BepInEx.Unity.IL2CPP, Version=6.0.0.0, Culture=neutral, PublicKeyToken=null'
-Found single assembly: 'BepInEx.Unity.IL2CPP, Version=6.0.0.0, Culture=neutral, PublicKeyToken=null'
-Load from: 'C:\Users\mitch\.nuget\packages\bepinex.unity.il2cpp\6.0.0-be.668\lib\net6.0\BepInEx.Unity.IL2CPP.dll'
-------------------
-Resolve: 'Il2CppInterop.Runtime, Version=1.4.5.0, Culture=neutral, PublicKeyToken=null'
-Found single assembly: 'Il2CppInterop.Runtime, Version=1.4.5.0, Culture=neutral, PublicKeyToken=null'
-Load from: 'C:\Users\mitch\.nuget\packages\vrising.unhollowed.client\0.6.5.57575090\lib\net6.0\Il2CppInterop.Runtime.dll'
-------------------
-Resolve: 'Stunlock.Core, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null'
-Found single assembly: 'Stunlock.Core, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null'
-Load from: 'C:\Users\mitch\.nuget\packages\vrising.unhollowed.client\0.6.5.57575090\lib\net6.0\Stunlock.Core.dll'
-------------------
-Resolve: 'ProjectM.Shared, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null'
-Found single assembly: 'ProjectM.Shared, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null'
-Load from: 'C:\Users\mitch\.nuget\packages\vrising.unhollowed.client\0.6.5.57575090\lib\net6.0\ProjectM.Shared.dll'
-------------------
-Resolve: 'ProjectM.Gameplay.Systems, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null'
-Found single assembly: 'ProjectM.Gameplay.Systems, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null'
-Load from: 'C:\Users\mitch\.nuget\packages\vrising.unhollowed.client\0.6.5.57575090\lib\net6.0\ProjectM.Gameplay.Systems.dll'
-------------------
-Resolve: 'ProjectM.Misc.Systems, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null'
-Found single assembly: 'ProjectM.Misc.Systems, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null'
-Load from: 'C:\Users\mitch\.nuget\packages\vrising.unhollowed.client\0.6.5.57575090\lib\net6.0\ProjectM.Misc.Systems.dll'
-------------------
-Resolve: 'Unity.Collections, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null'
-Found single assembly: 'Unity.Collections, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null'
-Load from: 'C:\Users\mitch\.nuget\packages\vrising.unhollowed.client\0.6.5.57575090\lib\net6.0\Unity.Collections.dll'
-------------------
-Resolve: 'ProjectM.Roofs, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null'
-Found single assembly: 'ProjectM.Roofs, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null'
-Load from: 'C:\Users\mitch\.nuget\packages\vrising.unhollowed.client\0.6.5.57575090\lib\net6.0\ProjectM.Roofs.dll'
-------------------
-Resolve: 'Unity.Mathematics, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null'
-Found single assembly: 'Unity.Mathematics, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null'
-Load from: 'C:\Users\mitch\.nuget\packages\vrising.unhollowed.client\0.6.5.57575090\lib\net6.0\Unity.Mathematics.dll'
-------------------
-Resolve: 'Il2Cppmscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=null'
-Found single assembly: 'Il2Cppmscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=null'
-Load from: 'C:\Users\mitch\.nuget\packages\vrising.unhollowed.client\0.6.5.57575090\lib\net6.0\Il2Cppmscorlib.dll'
-------------------
-Resolve: 'Unity.Transforms, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null'
-Found single assembly: 'Unity.Transforms, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null'
-Load from: 'C:\Users\mitch\.nuget\packages\vrising.unhollowed.client\0.6.5.57575090\lib\net6.0\Unity.Transforms.dll'
-------------------
-Resolve: 'BepInEx.Core, Version=6.0.0.0, Culture=neutral, PublicKeyToken=null'
-Found single assembly: 'BepInEx.Core, Version=6.0.0.0, Culture=neutral, PublicKeyToken=null'
-Load from: 'C:\Users\mitch\.nuget\packages\bepinex.core\6.0.0-be.668\lib\netstandard2.0\BepInEx.Core.dll'
-------------------
-Resolve: 'Bloodstone, Version=0.1.6.0, Culture=neutral, PublicKeyToken=null'
-Found single assembly: 'Bloodstone, Version=0.1.6.0, Culture=neutral, PublicKeyToken=null'
-Load from: 'C:\Users\mitch\.nuget\packages\vrising.bloodstone\0.1.6\lib\net6.0\Bloodstone.dll'
-------------------
-Resolve: 'com.stunlock.network, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null'
-Found single assembly: 'com.stunlock.network, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null'
-Load from: 'C:\Users\mitch\.nuget\packages\vrising.unhollowed.client\0.6.5.57575090\lib\net6.0\com.stunlock.network.dll'
-------------------
-Resolve: 'ProjectM.Terrain, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null'
-Found single assembly: 'ProjectM.Terrain, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null'
-Load from: 'C:\Users\mitch\.nuget\packages\vrising.unhollowed.client\0.6.5.57575090\lib\net6.0\ProjectM.Terrain.dll'
-------------------
-Resolve: 'ProjectM.Gameplay.Scripting, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null'
-Found single assembly: 'ProjectM.Gameplay.Scripting, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null'
-Load from: 'C:\Users\mitch\.nuget\packages\vrising.unhollowed.client\0.6.5.57575090\lib\net6.0\ProjectM.Gameplay.Scripting.dll'
-------------------
-Resolve: 'System.Text.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51'
-Found single assembly: 'System.Text.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51'
-Load from: 'C:\Users\mitch\.nuget\packages\microsoft.netcore.app.ref\6.0.27\ref\net6.0\System.Text.Json.dll'
-------------------
-Resolve: 'System.ObjectModel, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a'
-Found single assembly: 'System.ObjectModel, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a'
-Load from: 'C:\Users\mitch\.nuget\packages\microsoft.netcore.app.ref\6.0.27\ref\net6.0\System.ObjectModel.dll'
-------------------
-Resolve: 'VampireCommandFramework, Version=0.8.2.0, Culture=neutral, PublicKeyToken=null'
-Found single assembly: 'VampireCommandFramework, Version=0.8.2.0, Culture=neutral, PublicKeyToken=null'
-Load from: 'C:\Users\mitch\.nuget\packages\vrising.vampirecommandframework\0.8.2\lib\net6.0\VampireCommandFramework.dll'
-------------------
-Resolve: 'System.Linq, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a'
-Found single assembly: 'System.Linq, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a'
-Load from: 'C:\Users\mitch\.nuget\packages\microsoft.netcore.app.ref\6.0.27\ref\net6.0\System.Linq.dll'
-------------------
-Resolve: 'System.Runtime.InteropServices, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a'
-Found single assembly: 'System.Runtime.InteropServices, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a'
-Load from: 'C:\Users\mitch\.nuget\packages\microsoft.netcore.app.ref\6.0.27\ref\net6.0\System.Runtime.InteropServices.dll'
-------------------
-Resolve: 'ProjectM.CodeGeneration, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null'
-Found single assembly: 'ProjectM.CodeGeneration, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null'
-Load from: 'C:\Users\mitch\.nuget\packages\vrising.unhollowed.client\0.6.5.57575090\lib\net6.0\ProjectM.CodeGeneration.dll'
-------------------
-Resolve: 'System.Text.RegularExpressions, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a'
-Found single assembly: 'System.Text.RegularExpressions, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a'
-Load from: 'C:\Users\mitch\.nuget\packages\microsoft.netcore.app.ref\6.0.27\ref\net6.0\System.Text.RegularExpressions.dll'
-------------------
-Resolve: 'System.Runtime.CompilerServices.Unsafe, Version=6.0.0.0, Culture=neutral, PublicKeyToken=null'
-Found single assembly: 'System.Runtime.CompilerServices.Unsafe, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a'
-Load from: 'C:\Users\mitch\.nuget\packages\microsoft.netcore.app.ref\6.0.27\ref\net6.0\System.Runtime.CompilerServices.Unsafe.dll'
-#endif

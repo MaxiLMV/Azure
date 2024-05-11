@@ -1,248 +1,134 @@
-﻿using Bloodstone.API;
-using Il2CppInterop.Runtime;
-using ProjectM;
-using ProjectM.CastleBuilding;
-using ProjectM.Network;
-using ProjectM.Shared;
+﻿using System;
 using System.Runtime.InteropServices;
-using Unity.Collections;
+using BepInEx.Core.Logging.Interpolation;
+using BepInEx.Logging;
+using Bloodstone.API;
+using Il2CppInterop.Runtime;
+using Il2CppSystem;
+using ProjectM;
 using Unity.Entities;
-using Unity.Mathematics;
-using static VCreate.Core.Services.PlayerService;
 
 namespace VCreate.Core.Toolbox
 {
-    public static class Utilities
-    {
-        public static Entity GetPrefabEntityByPrefabGUID(PrefabGUID prefabGUID, EntityManager entityManager)
-        {
-            try
-            {
-                PrefabCollectionSystem prefabCollectionSystem = entityManager.World.GetExistingSystem<PrefabCollectionSystem>();
+	// Token: 0x02000024 RID: 36
+	public static class Utilities
+	{
+		// Token: 0x06000108 RID: 264 RVA: 0x00050364 File Offset: 0x0004E564
+		public static Entity GetPrefabEntityByPrefabGUID(PrefabGUID prefabGUID, EntityManager entityManager)
+		{
+			Entity result;
+			try
+			{
+				PrefabCollectionSystem existingSystem = entityManager.World.GetExistingSystem<PrefabCollectionSystem>();
+				result = existingSystem._PrefabGuidToEntityMap[prefabGUID];
+			}
+			catch (Exception t)
+			{
+				ManualLogSource log = Plugin.Log;
+				bool flag;
+				BepInExErrorLogInterpolatedStringHandler bepInExErrorLogInterpolatedStringHandler = new BepInExErrorLogInterpolatedStringHandler(7, 1, ref flag);
+				if (flag)
+				{
+					bepInExErrorLogInterpolatedStringHandler.AppendLiteral("Error: ");
+					bepInExErrorLogInterpolatedStringHandler.AppendFormatted<Exception>(t);
+				}
+				log.LogError(bepInExErrorLogInterpolatedStringHandler);
+				result = Entity.Null;
+			}
+			return result;
+		}
 
+		// Token: 0x06000109 RID: 265 RVA: 0x000503E0 File Offset: 0x0004E5E0
+		public static Type Il2CppTypeGet(Type type)
+		{
+			return Type.GetType(type.ToString());
+		}
 
-                return prefabCollectionSystem._PrefabGuidToEntityMap[prefabGUID];
-            }
-            catch (Exception ex)
-            {
-                Plugin.Log.LogError($"Error: {ex}");
-                return Entity.Null;
-            }
-        }
-        public static Il2CppSystem.Type Il2CppTypeGet(Type type)
-        {
-            return Il2CppSystem.Type.GetType(type.ToString());
-        }
+		// Token: 0x0600010A RID: 266 RVA: 0x000503ED File Offset: 0x0004E5ED
+		public static ComponentType ComponentTypeGet(string component)
+		{
+			return ComponentType.ReadOnly(Type.GetType(component));
+		}
 
-        public static ComponentType ComponentTypeGet(string component)
-        {
-            return ComponentType.ReadOnly(Il2CppSystem.Type.GetType(component));
-        }
+		// Token: 0x0600010B RID: 267 RVA: 0x000503FC File Offset: 0x0004E5FC
+		public static bool HasComponent<T>(Entity entity) where T : struct
+		{
+			return VWorld.Server.EntityManager.HasComponent(entity, Utilities.ComponentTypeOther<T>());
+		}
 
-        // alternative for Entitymanager.HasComponent
-        public static bool HasComponent<T>(Entity entity) where T : struct
-        {
-            return VWorld.Server.EntityManager.HasComponent(entity, ComponentTypeOther<T>());
-        }
+		// Token: 0x0600010C RID: 268 RVA: 0x00050424 File Offset: 0x0004E624
+		public static bool AddComponent<T>(Entity entity) where T : struct
+		{
+			return VWorld.Server.EntityManager.AddComponent(entity, Utilities.ComponentTypeOther<T>());
+		}
 
-        // more convenient than Entitymanager.AddComponent
-        public static bool AddComponent<T>(Entity entity) where T : struct
-        {
-            return VWorld.Server.EntityManager.AddComponent(entity, ComponentTypeOther<T>());
-        }
+		// Token: 0x0600010D RID: 269 RVA: 0x00050449 File Offset: 0x0004E649
+		public static void AddComponentData<T>(Entity entity, T componentData) where T : struct
+		{
+			Utilities.AddComponent<T>(entity);
+			Utilities.SetComponentData<T>(entity, componentData);
+		}
 
-        // alternative for Entitymanager.AddComponentData
-        public static void AddComponentData<T>(Entity entity, T componentData) where T : struct
-        {
-            AddComponent<T>(entity);
-            SetComponentData(entity, componentData);
-        }
+		// Token: 0x0600010E RID: 270 RVA: 0x0005045C File Offset: 0x0004E65C
+		public static bool RemoveComponent<T>(Entity entity) where T : struct
+		{
+			return VWorld.Server.EntityManager.RemoveComponent(entity, Utilities.ComponentTypeOther<T>());
+		}
 
-        // alternative for Entitymanager.RemoveComponent
-        public static bool RemoveComponent<T>(Entity entity) where T : struct
-        {
-            return VWorld.Server.EntityManager.RemoveComponent(entity, ComponentTypeOther<T>());
-        }
+		// Token: 0x0600010F RID: 271 RVA: 0x00050484 File Offset: 0x0004E684
+		public unsafe static T GetComponentData<T>(Entity entity) where T : struct
+		{
+			void* componentDataRawRO = VWorld.Server.EntityManager.GetComponentDataRawRO(entity, Utilities.ComponentTypeIndex<T>());
+			return Marshal.PtrToStructure<T>(new IntPtr(componentDataRawRO));
+		}
 
-        // alternative for EntityMManager.GetComponentData
-        public static unsafe T GetComponentData<T>(Entity entity) where T : struct
-        {
-            void* rawPointer = VWorld.Server.EntityManager.GetComponentDataRawRO(entity, ComponentTypeIndex<T>());
-            return Marshal.PtrToStructure<T>(new IntPtr(rawPointer));
-        }
+		// Token: 0x06000110 RID: 272 RVA: 0x000504B8 File Offset: 0x0004E6B8
+		public unsafe static void SetComponentData<T>(Entity entity, T componentData) where T : struct
+		{
+			int num = Marshal.SizeOf<T>(componentData);
+			byte[] array = Utilities.StructureToByteArray<T>(componentData);
+			byte[] array2;
+			byte* ptr;
+			if ((array2 = array) == null || array2.Length == 0)
+			{
+				ptr = null;
+			}
+			else
+			{
+				ptr = &array2[0];
+			}
+			VWorld.Server.EntityManager.SetComponentDataRaw(entity, Utilities.ComponentTypeIndex<T>(), (void*)ptr, num);
+			array2 = null;
+		}
 
-        // alternative for EntityManager.SetComponentData
-        public static unsafe void SetComponentData<T>(Entity entity, T componentData) where T : struct
-        {
-            var size = Marshal.SizeOf(componentData);
-            //byte[] byteArray = new byte[size];
-            var byteArray = StructureToByteArray(componentData);
-            fixed (byte* data = byteArray)
-            {
-                //UnsafeUtility.CopyStructureToPtr(ref componentData, data);
-                VWorld.Server.EntityManager.SetComponentDataRaw(entity, ComponentTypeIndex<T>(), data, size);
-            }
-        }
+		// Token: 0x06000111 RID: 273 RVA: 0x00050508 File Offset: 0x0004E708
+		private static ComponentType ComponentTypeOther<T>()
+		{
+			return new ComponentType(Il2CppType.Of<T>(), ComponentType.AccessMode.ReadWrite);
+		}
 
-        private static ComponentType ComponentTypeOther<T>()
-        {
-            return new ComponentType(Il2CppType.Of<T>());
-        }
+		// Token: 0x06000112 RID: 274 RVA: 0x00050515 File Offset: 0x0004E715
+		private static int ComponentTypeIndex<T>()
+		{
+			return Utilities.ComponentTypeOther<T>().TypeIndex;
+		}
 
-        private static int ComponentTypeIndex<T>()
-        {
-            return ComponentTypeOther<T>().TypeIndex;
-        }
-
-        private static byte[] StructureToByteArray<T>(T structure) where T : struct
-        {
-            int size = Marshal.SizeOf(structure);
-            byte[] byteArray = new byte[size];
-            IntPtr ptr = Marshal.AllocHGlobal(size);
-            try
-            {
-                Marshal.StructureToPtr(structure, ptr, true);
-                Marshal.Copy(ptr, byteArray, 0, size);
-            }
-            finally
-            {
-                Marshal.FreeHGlobal(ptr);
-            }
-            return byteArray;
-        }
-    }
-
-    public static class CastleTerritoryCache
-    {
-        public static Dictionary<int2, Entity> BlockTileToTerritory = new();
-        public static int TileToBlockDivisor = 10;
-
-        public static void Initialize()
-        {
-            var entities = Helper.GetEntitiesByComponentTypes<CastleTerritoryBlocks>();
-            foreach (var entity in entities)
-            {
-                entity.LogComponentTypes();
-                var buffer = entity.ReadBuffer<CastleTerritoryBlocks>();
-                foreach (var block in buffer)
-                {
-                    //Plugin.Logger.LogInfo($"{block.BlockCoordinate}");
-                    BlockTileToTerritory[block.BlockCoordinate] = entity;
-                }
-            }
-        }
-
-        
-
-        public static bool TryGetCastleTerritory(Entity entity, out Entity territoryEntity)
-        {
-            if (entity.Has<TilePosition>())
-            {
-                return BlockTileToTerritory.TryGetValue(entity.Read<TilePosition>().Tile / TileToBlockDivisor, out territoryEntity);
-            }
-            territoryEntity = default;
-            return false;
-        }
-    }
-
-    public static class Il2cppService
-    {
-        private static Il2CppSystem.Type GetType<T>() => Il2CppType.Of<T>();
-
-        public static unsafe T GetComponentDataAOT<T>(this EntityManager entityManager, Entity entity) where T : unmanaged
-        {
-            var type = TypeManager.GetTypeIndex(GetType<T>());
-            var result = (T*)entityManager.GetComponentDataRawRW(entity, type);
-
-            return *result;
-        }
-
-        public static NativeArray<Entity> GetEntitiesByComponentTypes<T1>(bool includeAll = false)
-        {
-            EntityQueryOptions options = includeAll ? EntityQueryOptions.IncludeAll : EntityQueryOptions.Default;
-
-            EntityQueryDesc queryDesc = new EntityQueryDesc
-            {
-                All = new ComponentType[] {
-                new ComponentType(Il2CppType.Of<T1>(), ComponentType.AccessMode.ReadWrite)
-            },
-                Options = options
-            };
-
-            var query = VWorld.Server.EntityManager.CreateEntityQuery(queryDesc);
-            var entities = query.ToEntityArray(Allocator.Temp);
-
-            return entities;
-        }
-
-        public static NativeArray<Entity> GetEntitiesByComponentTypes<T1, T2>(bool includeAll = false)
-        {
-            EntityQueryOptions options = includeAll ? EntityQueryOptions.IncludeAll : EntityQueryOptions.Default;
-
-            EntityQueryDesc queryDesc = new EntityQueryDesc
-            {
-                All = new ComponentType[] {
-                new ComponentType(Il2CppType.Of<T1>(), ComponentType.AccessMode.ReadWrite),
-                new ComponentType(Il2CppType.Of<T2>(), ComponentType.AccessMode.ReadWrite)
-            },
-                Options = options
-            };
-
-            var query = VWorld.Server.EntityManager.CreateEntityQuery(queryDesc);
-            var entities = query.ToEntityArray(Allocator.Temp);
-
-            return entities;
-        }
-
-        public static NativeArray<Entity> GetEntitiesByComponentTypes<T1, T2, T3>(bool includeAll = false)
-        {
-            EntityQueryOptions options = includeAll ? EntityQueryOptions.IncludeAll : EntityQueryOptions.Default;
-
-            EntityQueryDesc queryDesc = new EntityQueryDesc
-            {
-                All = new ComponentType[] {
-                new ComponentType(Il2CppType.Of<T1>(), ComponentType.AccessMode.ReadWrite),
-                new ComponentType(Il2CppType.Of<T2>(), ComponentType.AccessMode.ReadWrite),
-                new ComponentType(Il2CppType.Of<T3>(), ComponentType.AccessMode.ReadWrite)
-            },
-                Options = options
-            };
-
-            var query = VWorld.Server.EntityManager.CreateEntityQuery(queryDesc);
-            var entities = query.ToEntityArray(Allocator.Temp);
-
-            return entities;
-        }
-    }
-
-    public static class SystemPatchUtil
-    {
-        public static void Destroy(Entity entity)
-        {
-            VWorld.Server.EntityManager.AddComponent<Disabled>(entity);
-            DestroyUtility.CreateDestroyEvent(VWorld.Server.EntityManager, entity, DestroyReason.Default, DestroyDebugReason.ByScript);
-        }
-
-        public static void Disable(Entity entity)
-        {
-            VWorld.Server.EntityManager.AddComponent<Disabled>(entity);
-            //DestroyUtility.CreateDestroyEvent(VWorld.Server.EntityManager, entity, DestroyReason.Default, DestroyDebugReason.ByScript);
-        }
-
-        public static void Enable(Entity entity)
-        {
-            VWorld.Server.EntityManager.RemoveComponent<Disabled>(entity);
-            //DestroyUtility.CreateDestroyEvent(VWorld.Server.EntityManager, entity, DestroyReason.Default, DestroyDebugReason.ByScript);
-        }
-    }
-
-    public static class NetworkedEntityUtil
-    {
-        private static readonly NetworkIdSystem _NetworkIdSystem = VWorld.Server.GetExistingSystem<NetworkIdSystem>();
-
-        public static bool TryFindEntity(NetworkId networkId, out Entity entity)
-        {
-            return _NetworkIdSystem._NetworkIdToEntityMap.TryGetValue(networkId, out entity);
-        }
-    }
+		// Token: 0x06000113 RID: 275 RVA: 0x00050524 File Offset: 0x0004E724
+		private static byte[] StructureToByteArray<T>(T structure) where T : struct
+		{
+			int num = Marshal.SizeOf<T>(structure);
+			byte[] array = new byte[num];
+			IntPtr intPtr = Marshal.AllocHGlobal(num);
+			try
+			{
+				Marshal.StructureToPtr<T>(structure, intPtr, true);
+				Marshal.Copy(intPtr, array, 0, num);
+			}
+			finally
+			{
+				Marshal.FreeHGlobal(intPtr);
+			}
+			return array;
+		}
+	}
 }
