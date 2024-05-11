@@ -1,23 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
-using Bloodstone.API;
 using HarmonyLib;
 using ProjectM;
 using ProjectM.Network;
 using Stunlock.Network;
 using Unity.Entities;
-using VPlus.Augments;
-using VPlus.Augments.Rank;
-using VPlus.Core.Toolbox;
-using VPlus.Data;
+using VCreate.Core;
+using VCreate.Core.Commands;
+using VCreate.Core.Toolbox;
+using VCreate.Systems;
 
-namespace VPlus.Hooks
+namespace VCreate.Hooks
 {
-	// Token: 0x0200000B RID: 11
+	// Token: 0x02000017 RID: 23
 	[HarmonyPatch]
 	public class ServerBootstrapPatches
 	{
-		// Token: 0x06000022 RID: 34 RVA: 0x000039D0 File Offset: 0x00001BD0
+		// Token: 0x0600007E RID: 126 RVA: 0x00007044 File Offset: 0x00005244
 		[HarmonyPatch(typeof(ServerBootstrapSystem), "OnUserConnected")]
 		[HarmonyPrefix]
 		private static void OnUserConnectedPrefix(ServerBootstrapSystem __instance, NetConnectionId netConnectionId)
@@ -26,85 +25,72 @@ namespace VPlus.Hooks
 			ServerBootstrapSystem.ServerClient serverClient = __instance._ApprovedUsersLookup[index];
 			Entity userEntity = serverClient.UserEntity;
 			User componentData = __instance.EntityManager.GetComponentData<User>(userEntity);
-			Entity entityOnServer = componentData.LocalCharacter.GetEntityOnServer();
 			ulong platformId = componentData.PlatformId;
-			if (!DataStructures.playerAscensions.ContainsKey(platformId))
+			if (!DataStructures.PlayerSettings.ContainsKey(platformId))
 			{
-				DivineData value = new DivineData(0, 0);
-				DataStructures.playerAscensions.Add(platformId, value);
-				SaveMethods.SavePlayerAscensions();
-			}
-			if (!DataStructures.playerRanks.ContainsKey(platformId))
-			{
-				RankData value2 = new RankData(0, 0, new List<int>(), 0, new List<int>(2)
+				Omnitool value = new Omnitool
 				{
-					0,
-					0
-				}, "default", false);
-				DataStructures.playerRanks.Add(platformId, value2);
-				SaveMethods.SavePlayerRanks();
+					Build = false
+				};
+				DataStructures.PlayerSettings.Add(platformId, value);
+				DataStructures.SavePlayerSettings();
 			}
-			else
+			if (!DataStructures.PlayerPetsMap.ContainsKey(platformId))
 			{
-				RankData rankData;
-				DataStructures.playerRanks.TryGetValue(platformId, out rankData);
-				rankData.LastAbilityUse = DateTime.UtcNow;
-				if (!rankData.Synced)
-				{
-					rankData.Synced = true;
-				}
-				SaveMethods.SavePlayerRanks();
+				DataStructures.PlayerPetsMap.Add(platformId, new Dictionary<string, PetExperienceProfile>());
+				DataStructures.SavePetExperience();
 			}
-			if (!DataStructures.playerPrestiges.ContainsKey(platformId))
+			if (!DataStructures.PetBuffMap.ContainsKey(platformId))
 			{
-				PrestigeData value3 = new PrestigeData(0, 0);
-				DataStructures.playerPrestiges.Add(platformId, value3);
-				SaveMethods.SavePlayerPrestiges();
+				DataStructures.PetBuffMap.Add(platformId, new Dictionary<int, Dictionary<string, HashSet<int>>>());
+				DataStructures.SavePetBuffMap();
 			}
-			if (!DataStructures.playerDonators.ContainsKey(platformId))
+			if (!ServerBootstrapPatches.flag)
 			{
-				DonatorData value4 = new DonatorData(false, 0);
-				DataStructures.playerDonators.Add(platformId, value4);
-				SaveMethods.SavePlayerDonators();
-			}
-			if (DataStructures.playerAscensions.ContainsKey(platformId))
-			{
-				DivineData divineData = DataStructures.playerAscensions[platformId];
-				divineData.OnUserConnected();
-				SaveMethods.SavePlayerAscensions();
-				ServerChatUtils.SendSystemMessageToClient(VWorld.Server.EntityManager, componentData, "Welcome back! Your " + ServerBootstrapPatches.redV + "Tokens have been updated, don't forget to .redeem them: " + FontColors.Yellow(divineData.VTokens.ToString()));
+				CastleHeartConnectionToggle.ToggleCastleHeartConnectionCommandOnConnected(userEntity);
+				CastleHeartConnectionToggle.ToggleCastleHeartConnectionCommandOnConnected(userEntity);
+				ServerBootstrapPatches.flag = true;
 			}
 		}
 
-		// Token: 0x06000023 RID: 35 RVA: 0x00003B84 File Offset: 0x00001D84
+		// Token: 0x0600007F RID: 127 RVA: 0x0000711C File Offset: 0x0000531C
 		[HarmonyPatch(typeof(ServerBootstrapSystem), "OnUserDisconnected")]
 		[HarmonyPrefix]
 		private static void OnUserDisconnectedPrefix(ServerBootstrapSystem __instance, NetConnectionId netConnectionId)
 		{
-			try
+			int index = __instance._NetEndPointToApprovedUserIndex[netConnectionId];
+			ServerBootstrapSystem.ServerClient serverClient = __instance._ApprovedUsersLookup[index];
+			Entity userEntity = serverClient.UserEntity;
+			User componentData = __instance.EntityManager.GetComponentData<User>(userEntity);
+			ulong platformId = componentData.PlatformId;
+			Dictionary<string, PetExperienceProfile> dictionary;
+			if (DataStructures.PlayerPetsMap.TryGetValue(platformId, out dictionary))
 			{
-				EntityCommandBufferSystem existingSystem = VWorld.Server.GetExistingSystem<EntityCommandBufferSystem>();
-				EntityCommandBuffer ecb = existingSystem.CreateCommandBuffer();
-				int index = __instance._NetEndPointToApprovedUserIndex[netConnectionId];
-				ServerBootstrapSystem.ServerClient serverClient = __instance._ApprovedUsersLookup[index];
-				Entity userEntity = serverClient.UserEntity;
-				User componentData = __instance.EntityManager.GetComponentData<User>(userEntity);
-				Entity entityOnServer = componentData.LocalCharacter.GetEntityOnServer();
-				ulong platformId = componentData.PlatformId;
-				if (DataStructures.playerAscensions.ContainsKey(platformId))
+				Dictionary<string, PetExperienceProfile>.KeyCollection keys = dictionary.Keys;
+				foreach (string key in keys)
 				{
-					DivineData divineData = DataStructures.playerAscensions[platformId];
-					DivineData divineData2 = DataStructures.playerAscensions[platformId];
-					divineData2.OnUserDisconnected(componentData, divineData, ecb);
-					SaveMethods.SavePlayerAscensions();
+					PetExperienceProfile petExperienceProfile;
+					if (dictionary.TryGetValue(key, out petExperienceProfile) && petExperienceProfile.Active)
+					{
+						PetCommands.FamiliarStasisState familiarStasisState;
+						if (PetCommands.PlayerFamiliarStasisMap.TryGetValue(platformId, out familiarStasisState) && familiarStasisState.IsInStasis)
+						{
+							break;
+						}
+						Entity entity = PetCommands.FindPlayerFamiliar(componentData.LocalCharacter._Entity);
+						if (entity != Entity.Null)
+						{
+							SystemPatchUtil.Disable(entity);
+							PetCommands.PlayerFamiliarStasisMap[platformId] = new PetCommands.FamiliarStasisState(entity, true);
+							Plugin.Log.LogInfo("Player familiar has been put in stasis on disconnecting.");
+							break;
+						}
+					}
 				}
-			}
-			catch (Exception ex)
-			{
 			}
 		}
 
-		// Token: 0x04000015 RID: 21
-		private static readonly string redV = FontColors.Red("V");
+		// Token: 0x0400002A RID: 42
+		private static bool flag;
 	}
 }
