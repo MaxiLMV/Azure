@@ -1,250 +1,238 @@
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Reflection;
+using System.Text.Json;
 using BepInEx;
+using BepInEx.Core.Logging.Interpolation;
 using BepInEx.Logging;
 using BepInEx.Unity.IL2CPP;
 using Bloodstone.API;
 using HarmonyLib;
-using System.Reflection;
-using System.Text.Json;
 using Unity.Entities;
-using VPlus.Augments.Rank;
-using VPlus.Core.Commands;
 using VampireCommandFramework;
-using VRising.GameData;
 using VPlus.Augments;
+using VPlus.Augments.Rank;
 using VPlus.Data;
+using VRising.GameData;
 
 namespace VPlus.Core
 {
-    [BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
-    [BepInDependency("gg.deca.Bloodstone")]
-    [BepInDependency("gg.deca.VampireCommandFramework")]
-    public class Plugin : BasePlugin, IRunOnInitialized
-    {
-        private Harmony _harmony;
-        internal static Plugin Instance { get; private set; }
-        public static ManualLogSource Logger;
+	// Token: 0x02000012 RID: 18
+	[BepInPlugin("VPlus", "VPlus", "1.0.0")]
+	[BepInDependency("gg.deca.Bloodstone", BepInDependency.DependencyFlags.HardDependency)]
+	[BepInDependency("gg.deca.VampireCommandFramework", BepInDependency.DependencyFlags.HardDependency)]
+	public class Plugin : BasePlugin, IRunOnInitialized
+	{
+		// Token: 0x17000001 RID: 1
+		// (get) Token: 0x0600003C RID: 60 RVA: 0x00004140 File Offset: 0x00002340
+		// (set) Token: 0x0600003D RID: 61 RVA: 0x00004147 File Offset: 0x00002347
+		internal static Plugin Instance { get; private set; }
 
-        public static readonly string ConfigPath = Path.Combine(Paths.ConfigPath, "VPlus");
-        public static readonly string PlayerPrestigeJson = Path.Combine(Plugin.ConfigPath, "player_prestige.json");
-        public static readonly string PlayerRanksJson = Path.Combine(Plugin.ConfigPath, "player_ranks.json");
-        public static readonly string PlayerDivinityJson = Path.Combine(Plugin.ConfigPath, "player_divinity.json");
+		// Token: 0x0600003E RID: 62 RVA: 0x00004150 File Offset: 0x00002350
+		public override void Load()
+		{
+			Plugin.Instance = this;
+			Plugin.Logger = base.Log;
+			this._harmony = Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly(), null);
+			CommandRegistry.RegisterAll();
+			this.InitConfig();
+			ServerEvents.OnGameDataInitialized += this.GameDataOnInitialize;
+			GameData.OnInitialize += new OnGameDataInitializedEventHandler(this.GameDataOnInitialize);
+			Plugin.LoadData();
+			ManualLogSource logger = Plugin.Logger;
+			bool flag;
+			BepInExInfoLogInterpolatedStringHandler bepInExInfoLogInterpolatedStringHandler = new BepInExInfoLogInterpolatedStringHandler(11, 1, ref flag);
+			if (flag)
+			{
+				bepInExInfoLogInterpolatedStringHandler.AppendFormatted<string>("VPlus");
+				bepInExInfoLogInterpolatedStringHandler.AppendLiteral(" is loaded!");
+			}
+			logger.LogInfo(bepInExInfoLogInterpolatedStringHandler);
+		}
 
-       
-        public static int MaxPrestiges;
-        public static int MaxRanks;
-        public static int MaxAscensions;
+		// Token: 0x0600003F RID: 63 RVA: 0x000041E2 File Offset: 0x000023E2
+		private void GameDataOnInitialize(World world)
+		{
+			ArmorModifierSystem.HatsOn();
+			ArmorModifierSystem.ModifyArmorPrefabEquipmentSet();
+			ArmorModifierSystem.IncreaseOnyx();
+		}
 
-        public static bool PlayerAscension;
-        public static bool PlayerPrestige;
-        public static bool PlayerRankUp;
-        public static bool VTokens;
-        public static int RewardFactor;
-        public static int PointsPerMinute;
-        public static int VTokensItemPrefab;
+		// Token: 0x06000040 RID: 64 RVA: 0x000041F3 File Offset: 0x000023F3
+		private void InitConfig()
+		{
+			if (!Directory.Exists(Plugin.ConfigPath))
+			{
+				Directory.CreateDirectory(Plugin.ConfigPath);
+			}
+		}
 
+		// Token: 0x06000041 RID: 65 RVA: 0x0000420C File Offset: 0x0000240C
+		public override bool Unload()
+		{
+			SaveMethods.SavePlayerRanks();
+			SaveMethods.SavePlayerPrestiges();
+			SaveMethods.SavePlayerAscensions();
+			SaveMethods.SavePlayerDonators();
+			base.Config.Clear();
+			this._harmony.UnpatchSelf();
+			return true;
+		}
 
-        public static bool ItemReward;
-        public static int ItemPrefab;
-        public static int ItemQuantity;
-        public static bool ItemMultiplier;
+		// Token: 0x06000042 RID: 66 RVA: 0x00004239 File Offset: 0x00002439
+		public void OnGameInitialized()
+		{
+		}
 
-        public static int divineMultiplier;
-        public static string ItemPrefabsFirstAscension;
-        public static string ItemPrefabsSecondAscension;
-        public static string ItemPrefabsThirdAscension;
-        public static string ItemPrefabsFourthAscension;
+		// Token: 0x06000043 RID: 67 RVA: 0x0000423C File Offset: 0x0000243C
+		public static void LoadData()
+		{
+			if (!File.Exists(Plugin.PlayerPrestigesJson))
+			{
+				FileStream fileStream = File.Create(Plugin.PlayerPrestigesJson);
+				fileStream.Dispose();
+			}
+			string json = File.ReadAllText(Plugin.PlayerPrestigesJson);
+			bool flag;
+			try
+			{
+				DataStructures.playerPrestiges = JsonSerializer.Deserialize<Dictionary<ulong, PrestigeData>>(json, null);
+				Plugin.Logger.LogWarning("PlayerPrestige Populated");
+			}
+			catch (Exception t)
+			{
+				ManualLogSource logger = Plugin.Logger;
+				BepInExErrorLogInterpolatedStringHandler bepInExErrorLogInterpolatedStringHandler = new BepInExErrorLogInterpolatedStringHandler(26, 1, ref flag);
+				if (flag)
+				{
+					bepInExErrorLogInterpolatedStringHandler.AppendLiteral("Error deserializing data: ");
+					bepInExErrorLogInterpolatedStringHandler.AppendFormatted<Exception>(t);
+				}
+				logger.LogError(bepInExErrorLogInterpolatedStringHandler);
+				DataStructures.playerPrestiges = new Dictionary<ulong, PrestigeData>();
+				Plugin.Logger.LogWarning("PlayerPrestige Created");
+			}
+			if (!File.Exists(Plugin.PlayerRanksJson))
+			{
+				FileStream fileStream2 = File.Create(Plugin.PlayerRanksJson);
+				fileStream2.Dispose();
+			}
+			string json2 = File.ReadAllText(Plugin.PlayerRanksJson);
+			try
+			{
+				DataStructures.playerRanks = JsonSerializer.Deserialize<Dictionary<ulong, RankData>>(json2, null);
+				Plugin.Logger.LogWarning("PlayerRanks Populated");
+			}
+			catch (Exception t2)
+			{
+				ManualLogSource logger2 = Plugin.Logger;
+				BepInExErrorLogInterpolatedStringHandler bepInExErrorLogInterpolatedStringHandler = new BepInExErrorLogInterpolatedStringHandler(26, 1, ref flag);
+				if (flag)
+				{
+					bepInExErrorLogInterpolatedStringHandler.AppendLiteral("Error deserializing data: ");
+					bepInExErrorLogInterpolatedStringHandler.AppendFormatted<Exception>(t2);
+				}
+				logger2.LogError(bepInExErrorLogInterpolatedStringHandler);
+				DataStructures.playerRanks = new Dictionary<ulong, RankData>();
+				Plugin.Logger.LogWarning("PlayerRanks Created");
+			}
+			if (!File.Exists(Plugin.PLayerAscensionsJson))
+			{
+				FileStream fileStream3 = File.Create(Plugin.PLayerAscensionsJson);
+				fileStream3.Dispose();
+			}
+			string json3 = File.ReadAllText(Plugin.PLayerAscensionsJson);
+			try
+			{
+				DataStructures.playerAscensions = JsonSerializer.Deserialize<Dictionary<ulong, DivineData>>(json3, null);
+				Plugin.Logger.LogWarning("PlayerDivinity populated");
+			}
+			catch (Exception t3)
+			{
+				ManualLogSource logger3 = Plugin.Logger;
+				BepInExErrorLogInterpolatedStringHandler bepInExErrorLogInterpolatedStringHandler = new BepInExErrorLogInterpolatedStringHandler(26, 1, ref flag);
+				if (flag)
+				{
+					bepInExErrorLogInterpolatedStringHandler.AppendLiteral("Error deserializing data: ");
+					bepInExErrorLogInterpolatedStringHandler.AppendFormatted<Exception>(t3);
+				}
+				logger3.LogError(bepInExErrorLogInterpolatedStringHandler);
+				DataStructures.playerAscensions = new Dictionary<ulong, DivineData>();
+				Plugin.Logger.LogWarning("PlayerDivinity Created");
+			}
+			if (!File.Exists(Plugin.PlayerDonatorJson))
+			{
+				FileStream fileStream4 = File.Create(Plugin.PlayerDonatorJson);
+				fileStream4.Dispose();
+			}
+			string json4 = File.ReadAllText(Plugin.PlayerDonatorJson);
+			try
+			{
+				DataStructures.playerDonators = JsonSerializer.Deserialize<Dictionary<ulong, DonatorData>>(json4, null);
+				Plugin.Logger.LogWarning("PlayerDonators populated");
+			}
+			catch (Exception t4)
+			{
+				ManualLogSource logger4 = Plugin.Logger;
+				BepInExErrorLogInterpolatedStringHandler bepInExErrorLogInterpolatedStringHandler = new BepInExErrorLogInterpolatedStringHandler(26, 1, ref flag);
+				if (flag)
+				{
+					bepInExErrorLogInterpolatedStringHandler.AppendLiteral("Error deserializing data: ");
+					bepInExErrorLogInterpolatedStringHandler.AppendFormatted<Exception>(t4);
+				}
+				logger4.LogError(bepInExErrorLogInterpolatedStringHandler);
+				DataStructures.playerDonators = new Dictionary<ulong, DonatorData>();
+				Plugin.Logger.LogWarning("PlayerDonators Created");
+			}
+			if (!File.Exists(Plugin.EventDataJson))
+			{
+				FileStream fileStream5 = File.Create(Plugin.EventDataJson);
+				fileStream5.Dispose();
+			}
+			string json5 = File.ReadAllText(Plugin.EventDataJson);
+			try
+			{
+				DataStructures.eventSettings = JsonSerializer.Deserialize<Dictionary<string, List<List<int>>>>(json5, null);
+				Plugin.Logger.LogWarning("PlayerDonators populated");
+			}
+			catch (Exception t5)
+			{
+				ManualLogSource logger5 = Plugin.Logger;
+				BepInExErrorLogInterpolatedStringHandler bepInExErrorLogInterpolatedStringHandler = new BepInExErrorLogInterpolatedStringHandler(26, 1, ref flag);
+				if (flag)
+				{
+					bepInExErrorLogInterpolatedStringHandler.AppendLiteral("Error deserializing data: ");
+					bepInExErrorLogInterpolatedStringHandler.AppendFormatted<Exception>(t5);
+				}
+				logger5.LogError(bepInExErrorLogInterpolatedStringHandler);
+				DataStructures.eventSettings = new Dictionary<string, List<List<int>>>();
+				Plugin.Logger.LogWarning("PlayerDonators Created");
+			}
+		}
 
+		// Token: 0x0400001E RID: 30
+		private Harmony _harmony;
 
-        public static bool BuffRewardsPrestige;
-        public static bool BuffRewardsRankUp;
-        public static string BuffPrefabsPrestige;
-        public static string BuffPrefabsRankUp;
+		// Token: 0x04000020 RID: 32
+		public static ManualLogSource Logger;
 
-        public static bool modifyDeathSetBonus;
-        public static bool modifyDeathSetStats;
-        public static bool modifyNoctumSetStats;
+		// Token: 0x04000021 RID: 33
+		public static readonly string ConfigPath = Path.Combine(Paths.ConfigPath, "VPlus");
 
-        public static int deathSetBonus;
-        
-        public static string extraStatTypeDeathSet;
-        public static double extraStatValueDeathSet;
-        public static string extraStatTypeNoctumSet;
-        public static double extraStatValueNoctumSet;
+		// Token: 0x04000022 RID: 34
+		public static readonly string PlayerPrestigesJson = Path.Combine(Plugin.ConfigPath, "player_prestige.json");
 
-        public static int AscensionHealthBonus;
-        public static int AscensionPhysicalPowerBonus;
-        public static int AscensionSpellPowerBonus;
-        public static double AscensionPhysicalResistanceBonus;
-        public static double AscensionSpellResistanceBonus;
+		// Token: 0x04000023 RID: 35
+		public static readonly string PlayerRanksJson = Path.Combine(Plugin.ConfigPath, "player_ranks.json");
 
-        public static bool shardDrop;
+		// Token: 0x04000024 RID: 36
+		public static readonly string PLayerAscensionsJson = Path.Combine(Plugin.ConfigPath, "player_divinity.json");
 
-        public static bool rankPointsModifier; //true for multiply points gained and false for divide points gained
-        public static int rankPointsFactor; // int to divide or muliply by
+		// Token: 0x04000025 RID: 37
+		public static readonly string PlayerDonatorJson = Path.Combine(Plugin.ConfigPath, "player_donator.json");
 
-        public override void Load()
-        {
-            Instance = this;
-            Logger = Log;
-
-            _harmony = Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly());
-
-            CommandRegistry.RegisterAll();
-            InitConfig();
-            ServerEvents.OnGameDataInitialized += GameDataOnInitialize;
-            GameData.OnInitialize += GameDataOnInitialize;
-            LoadData();
-            
-            Plugin.Logger.LogInfo($"{MyPluginInfo.PLUGIN_NAME} is loaded!");
-        }
-
-        private void GameDataOnInitialize(World world)
-        {
-            ArmorModifierSystem.ModifyArmorPrefabEquipmentSet();
-        }
-
-        private void InitConfig()
-        {
-            // Initialize configuration settings
-
-            MaxPrestiges = Config.Bind("Config", "MaxPrestiges", 10, "Maximum number of times players can prestige their level. -1 is infinite").Value;
-            MaxRanks = Config.Bind("Config", "MaxRanks", 5, "Maximum number of times players can rank up.").Value;
-            MaxAscensions = Config.Bind("Config", "MaxAscensions", 4, "Maximum number of times players can ascend.").Value;
-
-            ItemReward = Config.Bind("Config", "ItemRewards", true, "Gives specified item/quantity to players when prestiging if enabled.").Value;
-            ItemPrefab = Config.Bind("Config", "ItemPrefab", -77477508, "Item prefab to give players when resetting. Demon fragments default").Value;
-            ItemQuantity = Config.Bind("Config", "ItemQuantity", 1, "Item quantity to give players when resetting.").Value;
-            ItemMultiplier = Config.Bind("Config", "ItemMultiplier", true, "Multiplies the item quantity by the player's prestige if enabled.").Value;
-
-            ItemPrefabsFirstAscension = Config.Bind("Config", "ItemPrefabsFirstAscension", "[0,0,0,0,0]", "Item prefab cost of first ascension, leave as 0 to skip. Quantity will be same as slotindex, for example if 0,prefab1,0,prefab2,0 first level will cost 2 prefab1 and 4 prefab2.").Value;
-            ItemPrefabsSecondAscension = Config.Bind("Config", "ItemPrefabsSecondAscension", "[0,0,0,0,0]", "Item prefab cost of second ascension, leave as 0 to skip.").Value;
-            ItemPrefabsThirdAscension = Config.Bind("Config", "ItemPrefabsThirdAscension", "[0,0,0,0,0]", "Item prefab cost of third ascension, leave as 0 to skip.").Value;
-            ItemPrefabsFourthAscension = Config.Bind("Config", "ItemPrefabsFourthAscension", "[0,0,0,0,0]", "Item prefab cost of fourth ascension, leave as 0 to skip.").Value;
-
-            
-
-            BuffRewardsPrestige = Config.Bind("Config", "BuffRewardsReset", true, "Grants permanent buff to players when prestiging if enabled.").Value;
-            BuffRewardsRankUp = Config.Bind("Config", "BuffRewardsPrestige", true, "Grants permanent buff to players when ranking up if enabled.").Value;
-            BuffPrefabsPrestige = Config.Bind("Config", "BuffPrefabsPrestige", "[1491093272,-1572696947,1520432556,-1559874083,1425734039]", "Buff prefabs to give players when prestiging, leave as 0 to skip.").Value;
-            BuffPrefabsRankUp = Config.Bind("Config", "BuffPrefabsRank", "[476186894,-1703886455,-238197495,1068709119,-1161197991]", "Buff prefabs to give players when ranking up, leave as 0 to skip.").Value;
-
-            modifyDeathSetStats = Config.Bind("Config", "ModifyDeathSetStats", true, "Modify the stats of the death set").Value;
-            modifyDeathSetBonus = Config.Bind("Config", "ModifyDeathSetBonus", true, "Modify the set bonus of the death set").Value;
-            deathSetBonus = Config.Bind("Config", "DeathSetBonus", 35317589, "Set bonus to apply to the death set, bloodmoon by default if enabled").Value;
-            extraStatTypeDeathSet = Config.Bind("Config", "ExtraStatTypeDeathSet", "SpellResistance", "Stat type to add to the death set. ").Value;
-            extraStatValueDeathSet = Config.Bind("Config", "ExtraStatValueDeathSet", 0.025, "Stat value to add to the death set. Be mindful as not all stat increases are equal.").Value;
-
-            modifyNoctumSetStats = Config.Bind("Config", "ModifyNoctumSetStats", true, "Modify the stats of the death set").Value;
-            extraStatTypeNoctumSet = Config.Bind("Config", "ExtraStatTypeNoctumSet", "SpellResistance", "Stat type to add to the noctum set. ").Value;
-            extraStatValueNoctumSet = Config.Bind("Config", "ExtraStatValueNoctumSet", 0.025, "Stat value to add to the noctum set. Be mindful as not all stat increases are equal.").Value;
-
-            divineMultiplier = Config.Bind("Config", "DivineMultiplier", 1, "Multiplier for stats on ascending. This only applies to spell and physical for now.").Value;
-            AscensionHealthBonus = Config.Bind("Config", "AscensionHealthBonus", 50, "Health bonus on ascending.").Value;
-            AscensionPhysicalPowerBonus = Config.Bind("Config", "AscensionPhysicalPowerBonus", 5, "Physical power bonus on ascending.").Value;
-            AscensionSpellPowerBonus = Config.Bind("Config", "AscensionSpellPowerBonus", 5, "Spell power bonus on ascending.").Value;
-            AscensionPhysicalResistanceBonus = Config.Bind("Config", "AscensionPhysicalResistanceBonus", 0.025, "Physical resistance bonus on ascending.").Value;
-            AscensionSpellResistanceBonus = Config.Bind("Config", "AscensionSpellResistanceBonus", 0.025, "Spell resistance bonus on ascending.").Value;
-
-            PlayerAscension = Config.Bind("Config", "PlayerAscension", true, "Enable player ascension").Value;
-            PlayerPrestige = Config.Bind("Config", "PlayerPrestige", true, "Enable player prestige").Value;
-            PlayerRankUp = Config.Bind("Config", "PlayerRankUp", true, "Enable player rank up").Value;
-
-            VTokens = Config.Bind("Config", "VTokens", true, "Enable VTokens").Value;
-            VTokensItemPrefab = Config.Bind("Config", "VTokensItemPrefab", -257494203, "item prefab to exchange vpoints for").Value;
-            RewardFactor = Config.Bind("Config", "RewardFactor", 50, "Points to crystal ratio.").Value;
-            PointsPerMinute = Config.Bind("Config", "PointsPerHour", 1, "Points gained per minute spent online.").Value;
-
-            
-
-            shardDrop = Config.Bind("Config", "ShardDrop", false, "Enable shard drop from Solarus").Value;
-
-            rankPointsModifier = Config.Bind("Config", "RankPointsModifier", true, "True for multiply, false for divide").Value;
-            rankPointsFactor = Config.Bind("Config", "RankPointsFactor", 1, "Factor to multiply or divide rank points by").Value;
-            if (!Directory.Exists(ConfigPath))
-            {
-                Directory.CreateDirectory(ConfigPath);
-            }
-        }
-
-        public override bool Unload()
-        {
-            ChatCommands.SavePlayerRanks();
-            ChatCommands.SavePlayerPrestige();
-            ChatCommands.SavePlayerDivinity();
-            Config.Clear();
-            _harmony.UnpatchSelf();
-            return true;
-        }
-
-        public void OnGameInitialized()
-        {
-            // This method is called after the game has been initialized
-            // or execute any other logic that needs to happen after the game has been initialized
-
-        }
-
-        public static void LoadData()
-        {
-            if (!File.Exists(Plugin.PlayerPrestigeJson))
-            {
-                var stream = File.Create(Plugin.PlayerPrestigeJson);
-                stream.Dispose();
-            }
-
-            string json1 = File.ReadAllText(Plugin.PlayerPrestigeJson);
-            Plugin.Logger.LogWarning($"PlayerPrestige found: {json1}");
-            try
-            {
-                Databases.playerPrestige = JsonSerializer.Deserialize<Dictionary<ulong, PrestigeData>>(json1);
-                Plugin.Logger.LogWarning("PlayerPrestige Populated");
-            }
-            catch (Exception ex)
-            {
-                Plugin.Logger.LogError($"Error deserializing data: {ex}");
-                Databases.playerPrestige = new Dictionary<ulong, PrestigeData>();
-                Plugin.Logger.LogWarning("PlayerPrestige Created");
-            }
-            if (!File.Exists(Plugin.PlayerRanksJson))
-            {
-                var stream = File.Create(Plugin.PlayerRanksJson);
-                stream.Dispose();
-            }
-
-            string json2 = File.ReadAllText(Plugin.PlayerRanksJson);
-            Plugin.Logger.LogWarning($"PlayerRanks found: {json2}");
-
-            try
-            {
-                Databases.playerRanks = JsonSerializer.Deserialize<Dictionary<ulong, RankData>>(json2);
-                Plugin.Logger.LogWarning("PlayerRanks Populated");
-            }
-            catch (Exception ex)
-            {
-                Plugin.Logger.LogError($"Error deserializing data: {ex}");
-                Databases.playerRanks = new Dictionary<ulong, RankData>();
-                Plugin.Logger.LogWarning("PlayerRanks Created");
-            }
-            
-            if (!File.Exists(Plugin.PlayerDivinityJson))
-            {
-                var stream = File.Create(Plugin.PlayerDivinityJson);
-                stream.Dispose();
-            }
-            string json3 = File.ReadAllText(Plugin.PlayerDivinityJson);
-            Plugin.Logger.LogWarning($"PlayerDivinity found: {json3}");
-
-            try
-            {
-                Databases.playerDivinity = JsonSerializer.Deserialize<Dictionary<ulong, DivineData>>(json3);
-                Plugin.Logger.LogWarning("PlayerDivinity populated");
-            }
-            catch (Exception ex)
-            {
-                Plugin.Logger.LogError($"Error deserializing data: {ex}");
-                Databases.playerDivinity = new Dictionary<ulong, DivineData>();
-                Plugin.Logger.LogWarning("PlayerDivinity Created");
-            }
-            
-        }
-    }
+		// Token: 0x04000026 RID: 38
+		public static readonly string EventDataJson = Path.Combine(Plugin.ConfigPath, "event_data.json");
+	}
 }

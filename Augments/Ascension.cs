@@ -1,213 +1,194 @@
-﻿using RPGMods.Commands;
-using VampireCommandFramework;
-using Plugin = VPlus.Core.Plugin;
-using VPlus.Core.Commands;
-using VRising.GameData.Models;
-using Unity.Entities;
-using ProjectM.Network;
-using ProjectM;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using Bloodstone.API;
-using VPlus.Hooks;
+using ProjectM;
+using ProjectM.Network;
 using ProjectM.Scripting;
+using RPGMods.Commands;
+using RPGMods.Utils;
+using Unity.Entities;
+using VampireCommandFramework;
+using VPlus.Data;
+using VRising.GameData;
+using VRising.GameData.Models;
 
 namespace VPlus.Augments
 {
-    public class DivineData
-    {
-        private static readonly string redV = VPlus.Core.Toolbox.FontColors.Red("V");
-        public int Divinity { get; set; }
-        public int VTokens { get; set; }
-        public DateTime LastConnectionTime { get; private set; }
-        public DateTime LastAwardTime { get; private set; }
-        public bool Shift { get; set; }
-        public bool Spawned { get; set; }
+	// Token: 0x02000019 RID: 25
+	internal class Ascension
+	{
+		// Token: 0x060000A0 RID: 160 RVA: 0x0000773C File Offset: 0x0000593C
+		public static void AscensionCheck(ChatCommandContext ctx, string playerName, ulong SteamID, DivineData data)
+		{
+			bool flag = Ascension.CheckRequirements(ctx, playerName, SteamID, data);
+			if (!flag)
+			{
+				ctx.Reply("You do not meet the requirements to ascend.");
+				return;
+			}
+			if (Ascension.ApplyAscensionBonuses(ctx, playerName, SteamID, data))
+			{
+				int divinity = data.Divinity;
+				data.Divinity = divinity + 1;
+				SaveMethods.SavePlayerAscensions();
+				return;
+			}
+		}
 
-        public DivineData(int divinity, int vtokens)
-        {
-            Divinity = divinity;
-            VTokens = vtokens;
-            LastConnectionTime = DateTime.UtcNow;
-            LastAwardTime = DateTime.UtcNow;
-        }
+		// Token: 0x060000A1 RID: 161 RVA: 0x00007784 File Offset: 0x00005984
+		public static bool ApplyAscensionBonuses(ChatCommandContext ctx, string playerName, ulong SteamID, DivineData data)
+		{
+			if (data.Divinity == 1)
+			{
+				ctx.Reply("Further ascension levels are currently locked.");
+				return false;
+			}
+			int num = 0;
+			int num2 = 0;
+			int num3 = 0;
+			PowerUpData powerUpData;
+			if (Database.PowerUpList.TryGetValue(SteamID, out powerUpData))
+			{
+				num = (int)powerUpData.MaxHP;
+				num2 = (int)powerUpData.PATK;
+				num3 = (int)powerUpData.SATK;
+			}
+			int num4 = num + 100 * (data.Divinity + 1);
+			int num5 = num2 + 10;
+			int num6 = num3 + 10;
+			if (data.Divinity == 4)
+			{
+				ctx.Reply("You have reached the maximum number of ascensions.");
+				return false;
+			}
+			PowerUp.powerUP(ctx, playerName, "add", (float)num4, (float)num5, (float)num6, 0f, 0f);
+			return true;
+		}
 
-        public void OnUserConnected()
-        {
-            LastConnectionTime = DateTime.UtcNow;
-        }
+		// Token: 0x060000A2 RID: 162 RVA: 0x00007828 File Offset: 0x00005A28
+		public static bool CheckRequirements(ChatCommandContext ctx, string playerName, ulong SteamID, DivineData data)
+		{
+			List<int> prefabIds;
+			switch (data.Divinity)
+			{
+			case 0:
+				prefabIds = Ascension.itemsRequired[Ascension.AscensionLevel.Level0];
+				break;
+			case 1:
+				prefabIds = Ascension.itemsRequired[Ascension.AscensionLevel.Level1];
+				break;
+			case 2:
+				prefabIds = Ascension.itemsRequired[Ascension.AscensionLevel.Level2];
+				break;
+			case 3:
+				prefabIds = Ascension.itemsRequired[Ascension.AscensionLevel.Level3];
+				break;
+			case 4:
+				ctx.Reply("You have reached the maximum number of ascensions.");
+				return false;
+			default:
+				throw new InvalidOperationException("Unknown Ascension Level");
+			}
+			return Ascension.CheckLevelRequirements(ctx, data, prefabIds);
+		}
 
-        public void OnUserDisconnected(User user, DivineData divineData)
-        {
-            UpdateVPoints();
-            LastConnectionTime = DateTime.UtcNow; // Reset for next session
-            EntityManager entityManager = VWorld.Server.EntityManager;
-            ServerChatUtils.SendSystemMessageToClient(entityManager, user, $"Your {redV} Tokens have been updated, don't forget to .redeem them: {VPlus.Core.Toolbox.FontColors.Yellow(divineData.VTokens.ToString())}");
-        }
+		// Token: 0x060000A3 RID: 163 RVA: 0x000078B0 File Offset: 0x00005AB0
+		public static bool CheckLevelRequirements(ChatCommandContext ctx, DivineData _, List<int> prefabIds)
+		{
+			ServerGameManager serverGameManager = VWorld.Server.GetExistingSystem<ServerScriptMapper>()._ServerGameManager;
+			EntityManager entityManager = VWorld.Server.EntityManager;
+			User user = ctx.User;
+			UserModel userByPlatformId = GameData.Users.GetUserByPlatformId(user.PlatformId);
+			Entity character = userByPlatformId.FromCharacter.Character;
+			Dictionary<PrefabGUID, int> dictionary = (from guid in prefabIds.Select((int id, int index) => new PrefabGUID(id))
+			group guid by guid).ToDictionary((IGrouping<PrefabGUID, PrefabGUID> group) => group.Key, (IGrouping<PrefabGUID, PrefabGUID> group) => group.Count<PrefabGUID>());
+			bool flag = true;
+			foreach (KeyValuePair<PrefabGUID, int> keyValuePair in dictionary)
+			{
+				if (keyValuePair.Key.GuidHash != 0 && serverGameManager.GetInventoryItemCount(character, keyValuePair.Key) < keyValuePair.Value)
+				{
+					ctx.Reply("You do not have enough of the required items. Use .getreq to see the items required and make sure they are all in your main inventory.");
+					flag = false;
+					break;
+				}
+			}
+			if (flag)
+			{
+				foreach (KeyValuePair<PrefabGUID, int> keyValuePair2 in dictionary)
+				{
+					if (keyValuePair2.Key.GuidHash != 0)
+					{
+						serverGameManager.TryRemoveInventoryItem(character, keyValuePair2.Key, keyValuePair2.Value);
+					}
+				}
+				return true;
+			}
+			return false;
+		}
 
-        public void UpdateVPoints()
-        {
-            TimeSpan timeOnline = DateTime.UtcNow - LastConnectionTime;
-            int minutesOnline = (int)timeOnline.TotalMinutes;
-            if (minutesOnline > 0)
-            {
-                VTokens += minutesOnline * VPlus.Core.Plugin.PointsPerMinute;
-                LastAwardTime = DateTime.UtcNow;
-            }
-        }
-    }
+		// Token: 0x0400004E RID: 78
+		public static readonly Dictionary<Ascension.AscensionLevel, List<int>> itemsRequired = new Dictionary<Ascension.AscensionLevel, List<int>>
+		{
+			{
+				Ascension.AscensionLevel.Level0,
+				new List<int>(5)
+				{
+					-1189846269,
+					-1199259626,
+					0,
+					0,
+					-953253466
+				}
+			},
+			{
+				Ascension.AscensionLevel.Level1,
+				new List<int>(5)
+				{
+					-580716317,
+					-1189846269,
+					301051123,
+					0,
+					889298519
+				}
+			},
+			{
+				Ascension.AscensionLevel.Level2,
+				new List<int>(5)
+				{
+					-580716317,
+					-1189846269,
+					-1838793646,
+					0,
+					-1629804427
+				}
+			},
+			{
+				Ascension.AscensionLevel.Level3,
+				new List<int>(5)
+				{
+					0,
+					0,
+					-1189846269,
+					1488205677,
+					-223452038
+				}
+			}
+		};
 
-    internal class Ascension
-    {
-        // one method for handling all cases of ascension? also method for checking requirements are met
-        public static void AscensionCheck(ChatCommandContext ctx, string playerName, ulong SteamID, DivineData data)
-        {
-            // check requirements are met and return true if so, false if not
-
-            bool requirementsMet = CheckRequirements(ctx, playerName, SteamID, data);
-            if (requirementsMet)
-            {
-                // run thing here, thing return true if works
-                if (ApplyAscensionBonuses(ctx, playerName, SteamID, data))
-                {
-                    data.Divinity++;
-                    ChatCommands.SavePlayerDivinity();
-                }
-            }
-            else
-            {
-                ctx.Reply("You do not meet the requirements to ascend.");
-                return;
-            }
-        }
-
-        public static bool ApplyAscensionBonuses(ChatCommandContext ctx, string playerName, ulong SteamID, DivineData data)
-        {
-            // Initial stats before ascension bonuses are applied
-            int preHealth = 0;
-            int prePhysicalPower = 0;
-            int preSpellPower = 0;
-            int prePhysicalResistance = 0;
-            int preSpellResistance = 0;
-
-            // Check if the player has previous power-up data and retrieve it
-            if (RPGMods.Utils.Database.PowerUpList.TryGetValue(SteamID, out RPGMods.Utils.PowerUpData preStats))
-            {
-                preHealth = (int)preStats.MaxHP;
-                prePhysicalPower = (int)preStats.PATK;
-                preSpellPower = (int)preStats.SATK;
-                prePhysicalResistance = (int)preStats.PDEF;
-                preSpellResistance = (int)preStats.SDEF;
-            }
-
-            // Set stat bonus values and add pre-existing bonuses for continuity
-
-            int extraHealth = preHealth + Plugin.AscensionHealthBonus;
-            int extraPhysicalPower = prePhysicalPower + Plugin.AscensionPhysicalPowerBonus * Plugin.divineMultiplier;
-            int extraSpellPower = preSpellPower + Plugin.AscensionSpellPowerBonus * Plugin.divineMultiplier;
-            float extraPhysicalResistance = (float)(prePhysicalResistance + Plugin.AscensionPhysicalResistanceBonus);
-            float extraSpellResistance = (float)(preSpellResistance + Plugin.AscensionSpellResistanceBonus);
-
-            // Example condition to limit the maximum number of ascensions
-            if (data.Divinity == Plugin.MaxAscensions)
-            {
-                ctx.Reply("You have reached the maximum number of ascensions.");
-                return false;
-            }
-
-            // Apply the updated stats to the player
-            PowerUp.powerUP(ctx, playerName, "add", extraHealth, extraPhysicalPower, extraSpellPower, extraPhysicalResistance, extraSpellResistance);
-            return true;
-        }
-
-        public enum AscensionLevel
-        {
-            Level0,
-            Level1,
-            Level2,
-            Level3,
-            Level4
-        }
-
-        public static List<int> ParsePrefabIdentifiers(string prefabIds)
-        {
-            // Removing the brackets at the start and end, then splitting by commas
-            var ids = prefabIds.Trim('[', ']').Split(',');
-            return ids.Select(int.Parse).ToList();
-        }
-
-        public static bool CheckRequirements(ChatCommandContext ctx, string playerName, ulong SteamID, DivineData data)
-        {
-            AscensionLevel ascensionLevel = (AscensionLevel)(data.Divinity);
-            List<int> prefabIds;
-
-            // Determine the prefab IDs based on the ascension level
-            switch (ascensionLevel)
-            {
-                case AscensionLevel.Level0:
-                    prefabIds = ParsePrefabIdentifiers(Plugin.ItemPrefabsFirstAscension);
-                    break;
-
-                case AscensionLevel.Level1:
-                    prefabIds = ParsePrefabIdentifiers(Plugin.ItemPrefabsSecondAscension);
-                    break;
-
-                case AscensionLevel.Level2:
-                    prefabIds = ParsePrefabIdentifiers(Plugin.ItemPrefabsThirdAscension);
-                    break;
-
-                case AscensionLevel.Level3:
-                    prefabIds = ParsePrefabIdentifiers(Plugin.ItemPrefabsFourthAscension);
-                    break;
-                case AscensionLevel.Level4:
-                    //ctx.Reply("You have reached the maximum number of ascensions.");
-                    return false;
-                default:
-                    throw new InvalidOperationException("Unknown Ascension Level");
-            }
-
-            return CheckLevelRequirements(ctx, data, prefabIds);
-        }
-
-        public static bool CheckLevelRequirements(ChatCommandContext ctx, DivineData _, List<int> prefabIds)
-        {
-            ServerGameManager serverGameManager = VWorld.Server.GetExistingSystem<ServerScriptMapper>()._ServerGameManager;
-            EntityManager entityManager = VWorld.Server.EntityManager;
-            var user = ctx.User;
-            UserModel userModel = VRising.GameData.GameData.Users.GetUserByPlatformId(user.PlatformId);
-            Entity characterEntity = userModel.FromCharacter.Character;
-            
-            // Aggregate required quantities for each PrefabGUID
-            var requiredQuantities = prefabIds
-                .Select((id, index) => new PrefabGUID(id))
-                .GroupBy(guid => guid)
-                .ToDictionary(group => group.Key, group => group.Count());
-
-
-            bool itemCheck = true;
-            // Check if all required items with their quantities are present in the inventory
-            foreach (var requirement in requiredQuantities)
-            {
-                if (requirement.Key.GuidHash == 0 ) continue;
-                if (serverGameManager.GetInventoryItemCount(characterEntity, requirement.Key) < requirement.Value)
-                {
-                    ctx.Reply($"You do not have enough of the required item: {requirement.Key}x{requirement.Value}");
-                    itemCheck = false;
-                    break;
-                }
-            }
-            if (itemCheck)
-            {
-                foreach (var requirement in requiredQuantities)
-                {
-                    if (requirement.Key.GuidHash == 0) continue;
-                    serverGameManager.TryRemoveInventoryItem(characterEntity, requirement.Key, requirement.Value);
-                }
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-            
-        }
-    }
+		// Token: 0x02000028 RID: 40
+		public enum AscensionLevel
+		{
+			// Token: 0x0400006C RID: 108
+			Level0,
+			// Token: 0x0400006D RID: 109
+			Level1,
+			// Token: 0x0400006E RID: 110
+			Level2,
+			// Token: 0x0400006F RID: 111
+			Level3,
+			// Token: 0x04000070 RID: 112
+			Level4
+		}
+	}
 }

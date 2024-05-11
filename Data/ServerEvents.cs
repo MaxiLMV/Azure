@@ -1,54 +1,66 @@
-﻿using HarmonyLib;
+﻿using System;
+using HarmonyLib;
 using ProjectM;
-using Unity.Entities;
 using VPlus.Core;
-using VPlus.Core.Commands;
 
 namespace VPlus.Data
 {
-    public delegate void OnGameDataInitializedEventHandler(World world);
+	// Token: 0x02000011 RID: 17
+	internal class ServerEvents
+	{
+		// Token: 0x14000001 RID: 1
+		// (add) Token: 0x06000038 RID: 56 RVA: 0x00004088 File Offset: 0x00002288
+		// (remove) Token: 0x06000039 RID: 57 RVA: 0x000040BC File Offset: 0x000022BC
+		internal static event OnGameDataInitializedEventHandler OnGameDataInitialized;
 
-    internal class ServerEvents
-    {
-        internal static event OnGameDataInitializedEventHandler OnGameDataInitialized;
+		// Token: 0x0600003A RID: 58 RVA: 0x000040F0 File Offset: 0x000022F0
+		[HarmonyPatch(typeof(LoadPersistenceSystemV2), "SetLoadState")]
+		[HarmonyPostfix]
+		private static void ServerStartupStateChange_Postfix(ServerStartupState.State loadState, LoadPersistenceSystemV2 __instance)
+		{
+			try
+			{
+				if (loadState == ServerStartupState.State.SuccessfulStartup)
+				{
+					OnGameDataInitializedEventHandler onGameDataInitialized = ServerEvents.OnGameDataInitialized;
+					if (onGameDataInitialized != null)
+					{
+						onGameDataInitialized(__instance.World);
+					}
+				}
+			}
+			catch (Exception data)
+			{
+				Plugin.Logger.LogError(data);
+			}
+		}
 
-        [HarmonyPatch(typeof(LoadPersistenceSystemV2), nameof(LoadPersistenceSystemV2.SetLoadState))]
-        [HarmonyPostfix]
-        private static void ServerStartupStateChange_Postfix(ServerStartupState.State loadState, LoadPersistenceSystemV2 __instance)
-        {
-            try
-            {
-                if (loadState == ServerStartupState.State.SuccessfulStartup)
-                {
-                    OnGameDataInitialized?.Invoke(__instance.World);
-                }
-            }
-            catch (Exception ex)
-            {
-                Plugin.Logger.LogError(ex);
-            }
-        }
+		// Token: 0x02000024 RID: 36
+		[HarmonyPatch(typeof(GameBootstrap), "OnApplicationQuit")]
+		public static class GameBootstrapQuit_Patch
+		{
+			// Token: 0x060000E8 RID: 232 RVA: 0x00009B76 File Offset: 0x00007D76
+			public static void Prefix()
+			{
+				SaveMethods.SavePlayerPrestiges();
+				SaveMethods.SavePlayerRanks();
+				SaveMethods.SavePlayerAscensions();
+				SaveMethods.SavePlayerDonators();
+			}
+		}
 
-        [HarmonyPatch(typeof(GameBootstrap), nameof(GameBootstrap.OnApplicationQuit))]
-        public static class GameBootstrapQuit_Patch
-        {
-            public static void Prefix()
-            {
-                ChatCommands.SavePlayerPrestige();
-                ChatCommands.SavePlayerRanks();
-                ChatCommands.SavePlayerDivinity();
-            }
-        }
-
-        [HarmonyPatch(typeof(TriggerPersistenceSaveSystem), nameof(TriggerPersistenceSaveSystem.TriggerSave))]
-        public class TriggerPersistenceSaveSystem_Patch
-        {
-            public static void Prefix()
-            {
-                ChatCommands.SavePlayerPrestige();
-                ChatCommands.SavePlayerRanks();
-                ChatCommands.SavePlayerDivinity();
-            }
-        }
-    }
+		// Token: 0x02000025 RID: 37
+		[HarmonyPatch(typeof(TriggerPersistenceSaveSystem), "TriggerSave")]
+		public class TriggerPersistenceSaveSystem_Patch
+		{
+			// Token: 0x060000E9 RID: 233 RVA: 0x00009B8C File Offset: 0x00007D8C
+			public static void Prefix()
+			{
+				SaveMethods.SavePlayerPrestiges();
+				SaveMethods.SavePlayerRanks();
+				SaveMethods.SavePlayerAscensions();
+				SaveMethods.SavePlayerDonators();
+			}
+		}
+	}
 }
